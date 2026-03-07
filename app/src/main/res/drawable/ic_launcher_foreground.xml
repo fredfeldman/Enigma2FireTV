@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Play triangle (orange) -->
+    <path
+        android:fillColor="#FFFFA500"
+        android:pathData="M35,25 L80,54 L35,83 Z" />
+    <!-- Satellite dish arc -->
+    <path
+        android:pathData="M68,18 A26,26 0 0 1 94,44"
+        android:strokeColor="#FFFFA500"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M74,18 L80,26"
+        android:strokeColor="#FFFFA500"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+</vector>

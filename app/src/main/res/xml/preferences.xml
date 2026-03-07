@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Receiver Connection">
+
+        <EditTextPreference
+            android:key="host"
+            android:title="@string/pref_title_host"
+            android:summary="@string/pref_summary_host"
+            android:inputType="textUri"
+            android:singleLine="true" />
+
+        <EditTextPreference
+            android:key="port"
+            android:title="@string/pref_title_port"
+            android:inputType="number"
+            android:singleLine="true" />
+
+        <SwitchPreferenceCompat
+            android:key="use_https"
+            android:title="@string/pref_title_https" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Authentication">
+
+        <EditTextPreference
+            android:key="username"
+            android:title="@string/pref_title_username"
+            android:inputType="textNoSuggestions"
+            android:singleLine="true" />
+
+        <EditTextPreference
+            android:key="password"
+            android:title="@string/pref_title_password"
+            android:inputType="textPassword"
+            android:singleLine="true" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>

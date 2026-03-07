@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Root app theme: MaterialComponents base so TextInputLayout works;
+         Leanback components are compatible with MaterialComponents themes. -->
+    <style name="Theme.Enigma2FireTV" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/background_dark</item>
+        <item name="android:colorBackground">@color/background_dark</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorPrimaryDark">@color/accent_dark</item>
+        <item name="colorAccent">@color/accent</item>
+        <!-- Remove title bar -->
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+    </style>
+
+    <!-- Full-screen player: no status bar, no action bar -->
+    <style name="Theme.Enigma2FireTV.Player" parent="Theme.Enigma2FireTV">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:keepScreenOn">true</item>
+    </style>
+
+    <!-- Settings uses a standard dark theme compatible with PreferenceFragmentCompat -->
+    <style name="Theme.Enigma2FireTV.Settings" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="android:windowBackground">@color/background_dark</item>
+        <item name="android:colorBackground">@color/background_dark</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorAccent">@color/accent</item>
+    </style>
+
+</resources>

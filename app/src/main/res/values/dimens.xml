@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="epg_row_height">64dp</dimen>
+    <dimen name="epg_channel_col_width">160dp</dimen>
+    <dimen name="channel_item_height">72dp</dimen>
+</resources>

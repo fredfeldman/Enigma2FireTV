@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">Enigma2 FireTV</string>
+    <string name="setup_subtitle">Connect to your Enigma2 receiver</string>
+
+    <!-- Setup / Settings -->
+    <string name="hint_receiver_ip">Receiver IP address or hostname</string>
+    <string name="hint_port">HTTP port (default: 80)</string>
+    <string name="hint_username">Username (optional)</string>
+    <string name="hint_password">Password (optional)</string>
+    <string name="use_https">Use HTTPS</string>
+    <string name="connect">Connect</string>
+    <string name="settings">Settings</string>
+
+    <!-- Navigation -->
+    <string name="bouquets">Bouquets</string>
+    <string name="channels">Channels</string>
+    <string name="epg_guide">EPG Guide</string>
+
+    <!-- Player OSD -->
+    <string name="next">NEXT:</string>
+
+    <!-- Errors / States -->
+    <string name="error_not_configured">Please configure your receiver in Settings.</string>
+    <string name="error_connection">Cannot connect to receiver. Check IP and network.</string>
+    <string name="loading">Loading…</string>
+    <string name="no_events">No EPG data available</string>
+    <string name="stream_error">Unable to start stream. Check receiver settings.</string>
+
+    <!-- Recordings -->
+    <string name="recordings">Recordings</string>
+    <string name="no_recordings">No recordings found on receiver</string>
+    <string name="recording_detail_hint">Select a recording to view details</string>
+    <string name="recording_delete_confirm">Delete this recording?</string>
+
+    <!-- Prefs -->
+    <string name="pref_title_host">Receiver address</string>
+    <string name="pref_summary_host">IP address or hostname</string>
+    <string name="pref_title_port">HTTP port</string>
+    <string name="pref_title_https">Use HTTPS</string>
+    <string name="pref_title_username">Username</string>
+    <string name="pref_title_password">Password</string>
+</resources>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_dark">
+
+    <!-- Loading indicator -->
+    <ProgressBar
+        android:id="@+id/loading_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone" />
+
+    <!-- Time ruler at top -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:orientation="horizontal">
+
+        <View
+            android:layout_width="@dimen/epg_channel_col_width"
+            android:layout_height="match_parent"
+            android:background="@color/surface_dark" />
+
+        <HorizontalScrollView
+            android:id="@+id/ruler_hscroll"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:overScrollMode="never">
+
+            <com.enigma2.firetv.ui.epg.EpgTimeRulerView
+                android:id="@+id/time_ruler"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent" />
+
+        </HorizontalScrollView>
+
+    </LinearLayout>
+
+    <!-- EPG grid: pinned channel column + scrollable event grid -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <!-- Pinned channel name column -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_epg_channels"
+            android:layout_width="@dimen/epg_channel_col_width"
+            android:layout_height="match_parent"
+            android:background="@color/surface_dark"
+            android:nestedScrollingEnabled="false" />
+
+        <!-- Scrollable EPG grid -->
+        <HorizontalScrollView
+            android:id="@+id/epg_hscroll"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scrollbars="none"
+            android:overScrollMode="never">
+
+            <com.enigma2.firetv.ui.epg.EpgGridView
+                android:id="@+id/epg_grid"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:focusable="true" />
+
+        </HorizontalScrollView>
+
+    </LinearLayout>
+
+    <!-- Bottom info bar for selected event -->
+    <LinearLayout
+        android:id="@+id/event_info_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/surface_dark"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/tv_selected_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_selected_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/accent"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_selected_desc"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
