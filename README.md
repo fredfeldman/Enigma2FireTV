@@ -1,5 +1,7 @@
 # Enigma2 FireTV
 
+The app is not real polished yet, but getting there.  App was created by AI with my prompts.
+
 A native Android / FireTV app built with **Kotlin**, the **Leanback** TV UI library and **ExoPlayer (Media3)** that connects to an **Enigma2** satellite/cable receiver running the **OpenWebif** plugin.
 
 ## Features
