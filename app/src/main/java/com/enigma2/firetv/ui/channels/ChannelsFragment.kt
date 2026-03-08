@@ -77,6 +77,23 @@ class ChannelsFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Re-apply filter in case hidden bouquets changed while in Settings
+        applyBouquetFilter(viewModel.bouquets.value ?: emptyList())
+    }
+
+    private fun applyBouquetFilter(bouquets: List<Bouquet>) {
+        val hidden = prefs.hiddenBouquetRefs
+        val visible = bouquets.filter { it.ref !in hidden }
+        bouquetAdapter.submitList(visible)
+        // If the currently selected bouquet was just hidden, select the first visible one
+        val selected = viewModel.selectedBouquet.value
+        if (selected != null && selected.ref in hidden && visible.isNotEmpty()) {
+            viewModel.selectBouquet(visible[0])
+        }
+    }
+
     private fun setupBouquetList() {
         bouquetAdapter = BouquetAdapter { bouquet ->
             viewModel.selectBouquet(bouquet)
@@ -109,7 +126,7 @@ class ChannelsFragment : Fragment() {
         }
 
         viewModel.bouquets.observe(viewLifecycleOwner) { bouquets ->
-            bouquetAdapter.submitList(bouquets)
+            applyBouquetFilter(bouquets)
         }
 
         viewModel.channels.observe(viewLifecycleOwner) { channels ->

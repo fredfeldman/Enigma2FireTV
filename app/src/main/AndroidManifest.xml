@@ -49,5 +49,11 @@
             android:exported="false"
             android:theme="@style/Theme.Enigma2FireTV.Settings" />
 
+        <!-- Hidden bouquets picker (launched from Settings) -->
+        <activity
+            android:name=".ui.settings.HideBouquetsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Enigma2FireTV.Settings" />
+
     </application>
 </manifest>

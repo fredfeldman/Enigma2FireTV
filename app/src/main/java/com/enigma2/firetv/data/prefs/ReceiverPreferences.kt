@@ -32,6 +32,11 @@ class ReceiverPreferences(context: Context) {
         get() = prefs.getString(KEY_PASS, "") ?: ""
         set(value) = prefs.edit { putString(KEY_PASS, value) }
 
+    /** Service references of bouquets the user has chosen to hide. */
+    var hiddenBouquetRefs: Set<String>
+        get() = prefs.getStringSet(KEY_HIDDEN_BOUQUETS, emptySet()) ?: emptySet()
+        set(value) = prefs.edit { putStringSet(KEY_HIDDEN_BOUQUETS, value) }
+
     val isConfigured: Boolean
         get() = host.isNotBlank()
 
@@ -63,5 +68,6 @@ class ReceiverPreferences(context: Context) {
         const val KEY_HTTPS = "use_https"
         const val KEY_USER = "username"
         const val KEY_PASS = "password"
+        const val KEY_HIDDEN_BOUQUETS = "hidden_bouquets"
     }
 }

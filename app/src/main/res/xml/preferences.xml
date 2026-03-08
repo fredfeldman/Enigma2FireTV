@@ -38,4 +38,13 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/pref_category_bouquets">
+
+        <Preference
+            android:key="manage_hidden_bouquets"
+            android:title="@string/pref_title_hidden_bouquets"
+            android:summary="@string/pref_summary_hidden_bouquets" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

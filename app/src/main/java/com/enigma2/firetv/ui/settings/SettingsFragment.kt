@@ -1,7 +1,9 @@
 package com.enigma2.firetv.ui.settings
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.preference.EditTextPreference
+import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
 import com.enigma2.firetv.R
@@ -63,6 +65,11 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 reInitApi(prefs)
                 true
             }
+        }
+
+        findPreference<Preference>("manage_hidden_bouquets")?.setOnPreferenceClickListener {
+            startActivity(Intent(requireContext(), HideBouquetsActivity::class.java))
+            true
         }
     }
 

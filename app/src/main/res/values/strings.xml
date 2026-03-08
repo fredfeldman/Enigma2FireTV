@@ -42,4 +42,9 @@
     <string name="pref_title_https">Use HTTPS</string>
     <string name="pref_title_username">Username</string>
     <string name="pref_title_password">Password</string>
+    <string name="pref_category_bouquets">Bouquets</string>
+    <string name="pref_title_hidden_bouquets">Hidden Bouquets</string>
+    <string name="pref_summary_hidden_bouquets">Choose which bouquets to hide from the channel list</string>
+    <string name="hidden_bouquets_title">Hidden Bouquets</string>
+    <string name="no_bouquets_available">No bouquets available. Check receiver connection.</string>
 </resources>
