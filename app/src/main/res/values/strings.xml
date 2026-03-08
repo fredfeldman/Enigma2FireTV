@@ -20,6 +20,7 @@
 
     <!-- Player OSD -->
     <string name="next">NEXT:</string>
+    <string name="paused">⏸  PAUSED</string>
 
     <!-- Errors / States -->
     <string name="error_not_configured">Please configure your receiver in Settings.</string>

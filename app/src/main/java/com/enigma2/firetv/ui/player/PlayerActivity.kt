@@ -68,7 +68,10 @@ class PlayerActivity : FragmentActivity() {
     private lateinit var tvPosition: TextView
     private lateinit var tvDuration: TextView
     private lateinit var tvSeekHint: TextView
+    private lateinit var tvPauseStatus: TextView
+    private lateinit var tvLiveSeekHint: TextView
     private var isSeekable = false
+    private var userPaused = false
 
     private var player: ExoPlayer? = null
     private lateinit var prefs: ReceiverPreferences
@@ -78,6 +81,7 @@ class PlayerActivity : FragmentActivity() {
 
     private val hideOsdRunnable = Runnable { hideOsd() }
     private val clearSeekHintRunnable = Runnable { tvSeekHint.text = "" }
+    private val clearLiveSeekHintRunnable = Runnable { tvLiveSeekHint.visibility = View.GONE }
     private val seekBarUpdateRunnable = object : Runnable {
         override fun run() {
             updateSeekBar()
@@ -114,6 +118,8 @@ class PlayerActivity : FragmentActivity() {
         tvPosition = findViewById(R.id.tv_position)
         tvDuration = findViewById(R.id.tv_duration)
         tvSeekHint = findViewById(R.id.tv_seek_hint)
+        tvPauseStatus = findViewById(R.id.tv_pause_status)
+        tvLiveSeekHint = findViewById(R.id.tv_live_seek_hint)
 
         val streamUrl = intent.getStringExtra(EXTRA_STREAM_URL) ?: run {
             showError(getString(R.string.stream_error))
@@ -246,7 +252,9 @@ class PlayerActivity : FragmentActivity() {
     private fun showOsd() {
         osdOverlay.visibility = View.VISIBLE
         handler.removeCallbacks(hideOsdRunnable)
-        handler.postDelayed(hideOsdRunnable, OSD_HIDE_DELAY_MS)
+        if (!userPaused) {
+            handler.postDelayed(hideOsdRunnable, OSD_HIDE_DELAY_MS)
+        }
         // Show seek bar for seekable (recorded) content
         val exo = player ?: return
         val dur = exo.duration
@@ -263,6 +271,22 @@ class PlayerActivity : FragmentActivity() {
         handler.removeCallbacks(seekBarUpdateRunnable)
     }
 
+    private fun togglePause() {
+        val exo = player ?: return
+        if (exo.isPlaying) {
+            exo.pause()
+            userPaused = true
+            tvPauseStatus.visibility = View.VISIBLE
+            osdOverlay.visibility = View.VISIBLE
+            handler.removeCallbacks(hideOsdRunnable)
+        } else if (exo.playbackState == Player.STATE_READY) {
+            exo.play()
+            userPaused = false
+            tvPauseStatus.visibility = View.GONE
+            showOsd()
+        }
+    }
+
     private fun updateSeekBar() {
         val exo = player ?: return
         val duration = exo.duration.coerceAtLeast(1L)
@@ -271,6 +295,32 @@ class PlayerActivity : FragmentActivity() {
         seekBar.progress = position.coerceAtMost(duration).toInt()
         tvPosition.text = formatMs(position)
         tvDuration.text = formatMs(duration)
+    }
+
+    /**
+     * Seek within a live stream's buffer by [deltaMs] ms.
+     * Forward: only allowed if there is enough buffered data ahead.
+     * Backward: only allowed if we won't go before the start of the buffer window.
+     */
+    private fun seekInBuffer(deltaMs: Long) {
+        val exo = player ?: return
+        if (!exo.isCurrentMediaItemLive) return
+        val currentPos = exo.currentPosition
+        val targetPos = currentPos + deltaMs
+        if (deltaMs > 0) {
+            // Jump forward only if the buffer extends far enough
+            if (exo.bufferedPosition < targetPos) return
+        } else {
+            // Jump backward only if we stay within the available window
+            if (targetPos < 0) return
+        }
+        exo.seekTo(targetPos)
+        showOsd()
+        val label = if (deltaMs > 0) "+${deltaMs / 1000}s" else "${deltaMs / 1000}s"
+        tvLiveSeekHint.text = label
+        tvLiveSeekHint.visibility = View.VISIBLE
+        handler.removeCallbacks(clearLiveSeekHintRunnable)
+        handler.postDelayed(clearLiveSeekHintRunnable, 1_500L)
     }
 
     /** Seek forward (positive) or backward (negative) by [deltaMs] milliseconds. */
@@ -316,24 +366,35 @@ class PlayerActivity : FragmentActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         return when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_CENTER,
-            KeyEvent.KEYCODE_ENTER,
-            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
-                if (osdOverlay.visibility == View.VISIBLE) hideOsd()
-                else showOsd()
+            KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+            KeyEvent.KEYCODE_MEDIA_PLAY,
+            KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                togglePause()
                 true
             }
-            // Left / rewind  → -30 seconds
-            KeyEvent.KEYCODE_DPAD_LEFT,
-            KeyEvent.KEYCODE_MEDIA_REWIND -> {
-                if (isSeekable) { seek(-30_000L); true }
-                else super.onKeyDown(keyCode, event)
+            KeyEvent.KEYCODE_DPAD_CENTER,
+            KeyEvent.KEYCODE_ENTER -> {
+                if (userPaused && player?.playbackState == Player.STATE_READY) {
+                    togglePause()
+                } else {
+                    if (osdOverlay.visibility == View.VISIBLE) hideOsd()
+                    else showOsd()
+                }
+                true
             }
-            // Right / fast-forward → +30 seconds
+            // Left / rewind  → -30 s (recording) or -15 s within live buffer
+            KeyEvent.KEYCODE_DPAD_LEFT,
+            KeyEvent.KEYCODE_MEDIA_REWIND -> when {
+                isSeekable -> { seek(-30_000L); true }
+                player?.isCurrentMediaItemLive == true -> { seekInBuffer(-15_000L); true }
+                else -> super.onKeyDown(keyCode, event)
+            }
+            // Right / fast-forward → +30 s (recording) or +15 s within live buffer
             KeyEvent.KEYCODE_DPAD_RIGHT,
-            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
-                if (isSeekable) { seek(30_000L); true }
-                else super.onKeyDown(keyCode, event)
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> when {
+                isSeekable -> { seek(30_000L); true }
+                player?.isCurrentMediaItemLive == true -> { seekInBuffer(15_000L); true }
+                else -> super.onKeyDown(keyCode, event)
             }
             KeyEvent.KEYCODE_BACK -> {
                 if (osdOverlay.visibility == View.VISIBLE) {
@@ -359,7 +420,13 @@ class PlayerActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
-        player?.play()
+        if (!userPaused) {
+            player?.play()
+        } else {
+            tvPauseStatus.visibility = View.VISIBLE
+            osdOverlay.visibility = View.VISIBLE
+            handler.removeCallbacks(hideOsdRunnable)
+        }
     }
 
     override fun onDestroy() {

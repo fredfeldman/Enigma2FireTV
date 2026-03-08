@@ -69,6 +69,17 @@
 
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_pause_status"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:text="@string/paused"
+                android:textColor="@color/accent"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- Event progress bar -->
@@ -80,6 +91,18 @@
             android:layout_marginTop="8dp"
             android:progressTint="@color/accent"
             android:progressBackgroundTint="@color/progress_background" />
+
+        <!-- Live seek hint (shown briefly after a live buffer jump) -->
+        <TextView
+            android:id="@+id/tv_live_seek_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:gravity="center"
+            android:textColor="@color/accent"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <!-- Seek bar row (recordings / seekable content only) -->
         <LinearLayout
