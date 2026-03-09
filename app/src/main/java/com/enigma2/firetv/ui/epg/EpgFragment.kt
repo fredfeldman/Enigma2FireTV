@@ -141,6 +141,7 @@ class EpgFragment : Fragment() {
         // EPG grid callbacks
         epgGrid.onEventSelected = { event -> updateInfoBar(event) }
         epgGrid.onEventClicked = { _, service -> launchPlayer(service) }
+        epgGrid.onEventLongPressed = { event -> confirmRecord(event) }
 
         observeViewModel()
     }

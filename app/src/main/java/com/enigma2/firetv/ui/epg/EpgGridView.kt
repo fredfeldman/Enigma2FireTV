@@ -104,6 +104,9 @@ class EpgGridView @JvmOverloads constructor(
 
     var onEventSelected: ((EpgEvent?) -> Unit)? = null
     var onEventClicked: ((EpgEvent, Service) -> Unit)? = null
+    var onEventLongPressed: ((EpgEvent) -> Unit)? = null
+
+    private var longPressHandled = false
 
     // ---- Time formatting ----
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -233,12 +236,28 @@ class EpgGridView @JvmOverloads constructor(
                 val selectedEvent = getSelectedEvent()
                 val service = services.getOrNull(selectedRow)
                 if (selectedEvent != null && service != null) {
-                    onEventClicked?.invoke(selectedEvent, service)
+                    if (keyEvent.repeatCount >= 2 && !longPressHandled) {
+                        // Long-press: trigger record
+                        longPressHandled = true
+                        onEventLongPressed?.invoke(selectedEvent)
+                    } else if (keyEvent.repeatCount == 0) {
+                        longPressHandled = false
+                    }
+                    if (keyEvent.repeatCount == 0 && !longPressHandled) {
+                        onEventClicked?.invoke(selectedEvent, service)
+                    }
                 }
                 true
             }
             else -> super.onKeyDown(keyCode, keyEvent)
         }
+    }
+
+    override fun onKeyUp(keyCode: Int, keyEvent: KeyEvent): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+            longPressHandled = false
+        }
+        return super.onKeyUp(keyCode, keyEvent)
     }
 
     // ---- Helpers ----
