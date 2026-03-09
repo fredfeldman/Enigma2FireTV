@@ -12,6 +12,10 @@ import kotlinx.coroutines.launch
 
 class ChannelViewModel : ViewModel() {
 
+    companion object {
+        const val FAVORITES_REF = "__favorites__"
+    }
+
     private val repository = Enigma2Repository()
 
     // ---- Bouquets ----
@@ -58,8 +62,11 @@ class ChannelViewModel : ViewModel() {
 
     fun selectBouquet(bouquet: Bouquet) {
         _selectedBouquet.value = bouquet
-        loadChannels(bouquet.ref)
-        loadNowNext(bouquet.ref)
+        if (bouquet.ref != FAVORITES_REF) {
+            loadChannels(bouquet.ref)
+            loadNowNext(bouquet.ref)
+        }
+        // For FAVORITES_REF: ChannelsFragment observes selectedBouquet and calls showFavoriteChannels()
     }
 
     private fun loadChannels(bouquetRef: String) {
@@ -67,6 +74,11 @@ class ChannelViewModel : ViewModel() {
             val services = repository.getChannels(bouquetRef)
             _channels.value = services
         }
+    }
+
+    /** Called by ChannelsFragment to populate the favorites bouquet channel list. */
+    fun showFavoriteChannels(services: List<Service>) {
+        _channels.value = services
     }
 
     fun loadNowNext(bouquetRef: String) {
@@ -77,6 +89,15 @@ class ChannelViewModel : ViewModel() {
     }
 
     fun clearError() {
+        _error.value = null
+    }
+
+    /** Call before switching to a different device so stale data is not shown. */
+    fun resetForNewDevice() {
+        _bouquets.value = emptyList()
+        _channels.value = emptyList()
+        _selectedBouquet.value = null
+        _nowNext.value = emptyList()
         _error.value = null
     }
 }

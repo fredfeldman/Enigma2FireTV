@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_dark">
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:background="@color/surface_dark"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tv_playlist_detail_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="@color/accent"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:ellipsize="end"
+            android:maxLines="1" />
+
+        <Button
+            android:id="@+id/btn_play_all"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="@string/playlist_play_all"
+            android:backgroundTint="@color/accent"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:layout_marginEnd="8dp"
+            android:focusable="true" />
+
+        <Button
+            android:id="@+id/btn_add_videos"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:text="@string/add_video_files"
+            android:backgroundTint="@color/surface_dark"
+            android:textColor="@color/accent"
+            android:textSize="13sp"
+            android:focusable="true" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/playlist_detail_hint"
+        android:textColor="@color/text_secondary"
+        android:textSize="11sp"
+        android:gravity="center"
+        android:padding="6dp"
+        android:background="@color/surface_dark" />
+
+    <TextView
+        android:id="@+id/tv_playlist_detail_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/playlist_detail_empty"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:padding="40dp"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_playlist_entries"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp" />
+
+</LinearLayout>

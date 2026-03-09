@@ -5,13 +5,28 @@
     <string name="setup_subtitle">Connect to your Enigma2 receiver</string>
 
     <!-- Setup / Settings -->
+    <string name="hint_device_name">Device name (e.g. Living Room)</string>
     <string name="hint_receiver_ip">Receiver IP address or hostname</string>
     <string name="hint_port">HTTP port (default: 80)</string>
     <string name="hint_username">Username (optional)</string>
     <string name="hint_password">Password (optional)</string>
     <string name="use_https">Use HTTPS</string>
     <string name="connect">Connect</string>
+    <string name="cancel">Cancel</string>
     <string name="settings">Settings</string>
+
+    <!-- Device picker -->
+    <string name="switch_device">Switch Device</string>
+    <string name="select_device">Select Device</string>
+    <string name="add_device">+ Add Device</string>
+    <string name="device_picker_hint">Tap a device to switch · Long-press to edit or delete</string>
+    <string name="device_option_edit">Edit</string>
+    <string name="device_option_delete">Delete</string>
+    <string name="delete">Delete</string>
+    <string name="device_delete_last_title">Cannot Delete</string>
+    <string name="device_delete_last_message">You must have at least one device configured.</string>
+    <string name="device_delete_confirm_title">Delete Device</string>
+    <string name="device_delete_confirm_message">Remove \"%s\"?</string>
 
     <!-- Navigation -->
     <string name="bouquets">Bouquets</string>
@@ -47,4 +62,50 @@
     <string name="pref_summary_hidden_bouquets">Choose which bouquets to hide from the channel list</string>
     <string name="hidden_bouquets_title">Hidden Bouquets</string>
     <string name="no_bouquets_available">No bouquets available. Check receiver connection.</string>
+
+    <!-- Playlists -->
+    <string name="playlists">Playlists</string>
+    <string name="playlist">Playlist</string>
+    <string name="playlist_play_all">▶ Play All</string>
+    <string name="playlist_new_title">New Playlist</string>
+    <string name="playlist_name_hint">Playlist name</string>
+    <string name="playlist_empty_hint">No playlists yet. Create one to get started.</string>
+    <string name="playlist_detail_hint">Tap to play from this recording · ▲▼ to reorder · ✕ to remove</string>
+    <string name="playlist_detail_empty">This playlist is empty. Long-press a recording to add it.</string>
+    <string name="playlist_add_to">Add to Playlist</string>
+    <string name="playlist_none_yet">No playlists yet. Create one?</string>
+    <string name="playlist_added">Added to %s</string>
+    <string name="playlist_delete_confirm_title">Delete Playlist</string>
+    <string name="playlist_delete_confirm_message">Delete \"%s\"?</string>
+    <string name="create">Create</string>
+    <string name="rename">Rename</string>
+
+    <string name="add_video_files">Add Video Files</string>
+    <string name="video_browser_title">Add from Video Folder</string>
+    <string name="video_browser_title_for">Add to \"%s\"</string>
+    <string name="video_browser_hint">Tap a video to add it to the playlist</string>
+    <string name="video_empty">No videos found in /media/hdd/video</string>
+    <string name="video_load_error">Failed to load videos. Check receiver connection.</string>
+    <string name="video_added_to_playlist">Added \"%s\" to playlist</string>
+
+    <!-- Timer recordings -->
+    <string name="record_event">⏺ Record</string>
+    <string name="record_confirm_title">Schedule Recording</string>
+    <string name="record_confirm_message">Record \"%s\"\n%s</string>
+    <string name="record_confirm_ok">Record</string>
+    <string name="record_scheduled_ok">Recording scheduled: %s</string>
+    <string name="record_scheduled_fail">Failed to schedule recording: %s</string>
+
+    <!-- Favorites -->
+    <string name="favorites_bouquet_label">⭐ Favorites</string>
+    <string name="favorite_toggle">Toggle favorite</string>
+    <string name="favorite_add">⭐ Add to Favorites</string>
+    <string name="favorite_remove">Remove from Favorites</string>
+    <string name="channel_menu_epg">View EPG</string>
+
+    <plurals name="playlist_entry_count">
+        <item quantity="one">%d recording</item>
+        <item quantity="other">%d recordings</item>
+    </plurals>
+
 </resources>

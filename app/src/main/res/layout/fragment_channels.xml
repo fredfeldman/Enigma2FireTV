@@ -55,6 +55,18 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/btn_switch_device"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/switch_device"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
                 android:id="@+id/btn_epg"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -72,6 +84,18 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/recordings"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_playlists"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/playlists"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"

@@ -31,7 +31,24 @@
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="480dp"
             android:layout_height="wrap_content"
+            android:hint="@string/hint_device_name"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/et_device_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textCapWords"
+                android:imeOptions="actionNext"
+                android:textColor="@android:color/white" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="480dp"
+            android:layout_height="wrap_content"
             android:hint="@string/hint_receiver_ip"
+            android:layout_marginTop="16dp"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -113,6 +130,17 @@
             android:backgroundTint="@color/accent"
             android:textColor="@android:color/white"
             android:textSize="15sp" />
+
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="480dp"
+            android:layout_height="52dp"
+            android:text="@string/cancel"
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/surface_dark"
+            android:textColor="@android:color/white"
+            android:textSize="15sp"
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/loading_indicator"

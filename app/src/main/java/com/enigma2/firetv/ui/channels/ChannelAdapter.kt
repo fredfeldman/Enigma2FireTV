@@ -20,10 +20,12 @@ import java.util.Locale
 
 class ChannelAdapter(
     private val onChannelClick: (Service, Int) -> Unit,
-    private val onChannelLongClick: (Service) -> Unit
+    private val onChannelLongClick: (Service) -> Unit,
+    private val onFavoriteToggle: ((Service) -> Unit)? = null
 ) : ListAdapter<Service, ChannelAdapter.ViewHolder>(DiffCallback()) {
 
     private val nowNextMap = mutableMapOf<String, NowNextEvent>()
+    private var favoriteRefs: Set<String> = emptySet()
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -32,6 +34,7 @@ class ChannelAdapter(
         val tvName: TextView = view.findViewById(R.id.tv_channel_name)
         val tvNowPlaying: TextView = view.findViewById(R.id.tv_now_playing)
         val pbProgress: ProgressBar = view.findViewById(R.id.pb_event_progress)
+        val btnFavorite: TextView = view.findViewById(R.id.btn_favorite)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -82,11 +85,19 @@ class ChannelAdapter(
             onChannelLongClick(service)
             true
         }
+
+        // Favorite star indicator (visual only)
+        holder.btnFavorite.text = if (service.ref in favoriteRefs) "★" else "☆"
     }
 
     fun updateNowNext(events: List<NowNextEvent>) {
         nowNextMap.clear()
         events.forEach { nowNextMap[it.serviceRef] = it }
+        notifyDataSetChanged()
+    }
+
+    fun updateFavorites(refs: Set<String>) {
+        favoriteRefs = refs
         notifyDataSetChanged()
     }
 

@@ -6,6 +6,7 @@ import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.model.NowNextEvent
 import com.enigma2.firetv.data.model.Recording
 import com.enigma2.firetv.data.model.Service
+import com.enigma2.firetv.data.model.TimerResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -54,6 +55,20 @@ class Enigma2Repository {
             emptyList()
         }
     }
+
+    /**
+     * Fetches video files from a specific directory on the receiver (e.g. /media/hdd/video).
+     * Uses the same movielist API with a dirname filter.
+     * Returns an empty list on error.
+     */
+    suspend fun getVideoFiles(dirname: String): List<Recording> = withContext(Dispatchers.IO) {
+        try {
+            ApiClient.service.getMovieList(dirname).movies ?: emptyList()
+        } catch (e: Exception) {
+            android.util.Log.e("Enigma2Repo", "getVideoFiles failed", e)
+            emptyList()
+        }
+    }
     // -------------------------------------------------------------------------
     // EPG
     // -------------------------------------------------------------------------
@@ -89,6 +104,24 @@ class Enigma2Repository {
         } catch (e: Exception) {
             emptyList()
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Timers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Adds a recording timer on the receiver for the given EPG event.
+     * Returns a [TimerResponse] with [TimerResponse.result] == true on success.
+     */
+    suspend fun addTimer(event: EpgEvent): TimerResponse = withContext(Dispatchers.IO) {
+        ApiClient.service.addTimer(
+            sRef = event.serviceRef,
+            begin = event.beginTimestamp,
+            end = event.endTimestamp,
+            name = event.title,
+            eit = event.id
+        )
     }
 
     // -------------------------------------------------------------------------

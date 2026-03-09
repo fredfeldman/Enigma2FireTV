@@ -1,8 +1,8 @@
 # Enigma2 FireTV
 
-The app is not real polished yet, but getting there.  App was created by AI with my prompts.
+A native Android / FireTV app built with **Kotlin**, the **Leanback** TV UI library and **ExoPlayer (Media3)** that connects to one or more **Enigma2** satellite/cable receivers running the **OpenWebif** plugin.
 
-A native Android / FireTV app built with **Kotlin**, the **Leanback** TV UI library and **ExoPlayer (Media3)** that connects to an **Enigma2** satellite/cable receiver running the **OpenWebif** plugin.
+> App created with AI-assisted development.
 
 ## Features
 
@@ -15,6 +15,10 @@ A native Android / FireTV app built with **Kotlin**, the **Leanback** TV UI libr
 | OSD | On-screen display with channel name, programme, time and progress bar |
 | HTTP Basic Auth | Optional username/password for password-protected receivers |
 | Settings | In-app settings screen to change receiver IP / port / credentials |
+| **Multi-device** | Configure multiple Enigma2 receivers; switch with one button on the main screen |
+| **Recordings** | Browse, search and play back recordings stored on the receiver |
+| **Playlists** | Create and manage recording playlists; reorder entries, play sequentially with auto-advance |
+| **Video folder** | Add video files from `/media/hdd/video` on the receiver directly into a playlist |
 
 ## Prerequisites
 
@@ -41,7 +45,7 @@ cd Enigma2FireTV
 
 # Sideload to Fire TV (enable ADB debugging in Fire TV Settings > My Fire TV > Developer Options)
 adb connect <FireTV-IP>:5555
-adb install app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/debug/Enigma2FireTV-debug-1.0.apk
 ```
 
 ## Project Structure
@@ -51,17 +55,22 @@ app/src/main/
 ├── java/com/enigma2/firetv/
 │   ├── data/
 │   │   ├── api/         OpenWebifService.kt  ApiClient.kt
-│   │   ├── model/       Models.kt
-│   │   ├── prefs/       ReceiverPreferences.kt
+│   │   ├── model/       Models.kt  DeviceProfile.kt  RecordingPlaylist.kt
+│   │   ├── prefs/       ReceiverPreferences.kt  PlaylistPreferences.kt
 │   │   └── repository/  Enigma2Repository.kt
 │   └── ui/
 │       ├── main/        MainActivity.kt
 │       ├── setup/       SetupFragment.kt
 │       ├── channels/    ChannelsFragment.kt  BouquetAdapter  ChannelAdapter
+│       ├── devices/     DevicePickerFragment.kt  DeviceAdapter.kt
 │       ├── epg/         EpgFragment.kt  EpgGridView.kt  EpgTimeRulerView.kt
 │       ├── player/      PlayerActivity.kt
+│       ├── playlists/   PlaylistManagerFragment.kt  PlaylistDetailFragment.kt
+│       │                PlaylistAdapter.kt  PlaylistDetailAdapter.kt
+│       │                VideoFileBrowserFragment.kt
+│       ├── recordings/  RecordingsFragment.kt  RecordingAdapter.kt
 │       ├── settings/    SettingsActivity.kt  SettingsFragment.kt
-│       └── viewmodel/   ChannelViewModel.kt  EpgViewModel.kt
+│       └── viewmodel/   ChannelViewModel.kt  EpgViewModel.kt  RecordingViewModel.kt
 └── res/
     ├── layout/          All XML layouts
     ├── drawable/        Vector drawables & selectors
@@ -78,24 +87,45 @@ app/src/main/
 | `GET /api/epgservice?sRef=` | EPG for a single service |
 | `GET /api/epgmulti?bRef=` | Multi-service EPG for a bouquet |
 | `GET /api/zap?sRef=` | Zap the receiver to a service |
+| `GET /api/movielist` | All recordings |
+| `GET /api/movielist?dirname=` | Recordings / videos in a specific folder |
+| `GET /file?file=` | Stream a recording or video file by path |
 
-## Stream URL Format
+## Stream URL Formats
 
+**Live channel:**
 ```
 http://<receiver-ip>:8001/<service-reference>
 ```
-The Enigma2 service reference looks like:  
-`1:0:1:300:7:85:00C00000:0:0:0:`
+The Enigma2 service reference looks like: `1:0:1:300:7:85:00C00000:0:0:0:`
+
+**Recording / video file:**
+```
+http://<receiver-ip>:<port>/file?file=<encoded-path>
+```
+
+## Multi-Device Support
+
+Multiple receivers can be configured under **Switch Device** on the main screen. The app remembers the last-used device and reconnects to it automatically on launch. Tap **Switch Device** → **Add Device** to register a new receiver, or long-press an existing entry to edit or delete it.
+
+## Playlists
+
+1. Open **Playlists** from the main screen toolbar.
+2. Create a playlist with **New Playlist**.
+3. Inside a playlist tap **Add Video Files** to browse `/media/hdd/video` on the receiver, or go to **Recordings** and long-press any recording to add it.
+4. Use ▲ / ▼ to reorder entries and ✕ to remove them.
+5. Tap **▶ Play All** or tap any entry to start playback from that point. The player auto-advances through the queue.
 
 ## FireTV Remote Mapping
 
 | Button | Action |
 |---|---|
-| D-pad Up/Down | Navigate channels / EPG rows |
+| D-pad Up/Down | Navigate channels / EPG rows / list items |
 | D-pad Left/Right | Navigate EPG events in time |
-| OK / Select | Open channel / confirm event |
+| OK / Select | Open channel / confirm / play |
 | Back | Return to previous screen / hide OSD |
-| Play/Pause | Toggle OSD visibility during playback |
+| Play/Pause | Toggle pause / OSD visibility during playback |
+| Fast-forward / Rewind | Seek forward / backward in recordings |
 
 ## License
 

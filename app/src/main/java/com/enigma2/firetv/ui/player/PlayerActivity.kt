@@ -47,6 +47,12 @@ class PlayerActivity : FragmentActivity() {
         const val EXTRA_DESCRIPTION = "description"
         /** Optional: duration in seconds shown in the OSD (used for recordings). */
         const val EXTRA_DURATION_SEC = "duration_sec"
+        /** Optional playlist support: list of stream URLs to play sequentially. */
+        const val EXTRA_PLAYLIST_URLS = "playlist_urls"
+        const val EXTRA_PLAYLIST_TITLES = "playlist_titles"
+        const val EXTRA_PLAYLIST_DURATIONS = "playlist_durations"
+        /** Index within the playlist arrays where playback should start (default 0). */
+        const val EXTRA_PLAYLIST_INDEX = "playlist_index"
 
         private const val OSD_HIDE_DELAY_MS = 5_000L
     }
@@ -72,6 +78,13 @@ class PlayerActivity : FragmentActivity() {
     private lateinit var tvLiveSeekHint: TextView
     private var isSeekable = false
     private var userPaused = false
+
+    // Playlist state
+    private var playlistUrls: List<String> = emptyList()
+    private var playlistTitles: List<String> = emptyList()
+    private var playlistDurations: List<Int> = emptyList()
+    private var playlistIndex: Int = 0
+    private lateinit var tvPlaylistInfo: TextView
 
     private var player: ExoPlayer? = null
     private lateinit var prefs: ReceiverPreferences
@@ -120,6 +133,14 @@ class PlayerActivity : FragmentActivity() {
         tvSeekHint = findViewById(R.id.tv_seek_hint)
         tvPauseStatus = findViewById(R.id.tv_pause_status)
         tvLiveSeekHint = findViewById(R.id.tv_live_seek_hint)
+        tvPlaylistInfo = findViewById(R.id.tv_playlist_info)
+
+        // Read playlist extras
+        playlistUrls = intent.getStringArrayListExtra(EXTRA_PLAYLIST_URLS) ?: emptyList()
+        playlistTitles = intent.getStringArrayListExtra(EXTRA_PLAYLIST_TITLES) ?: emptyList()
+        playlistDurations = intent.getIntegerArrayListExtra(EXTRA_PLAYLIST_DURATIONS) ?: emptyList()
+        playlistIndex = intent.getIntExtra(EXTRA_PLAYLIST_INDEX, 0)
+        updatePlaylistInfoView()
 
         val streamUrl = intent.getStringExtra(EXTRA_STREAM_URL) ?: run {
             showError(getString(R.string.stream_error))
@@ -193,7 +214,11 @@ class PlayerActivity : FragmentActivity() {
                                 showLoading(false)
                                 showOsd()
                             }
-                            Player.STATE_IDLE, Player.STATE_ENDED -> showLoading(false)
+                            Player.STATE_ENDED -> {
+                                showLoading(false)
+                                advancePlaylist()
+                            }
+                            Player.STATE_IDLE -> showLoading(false)
                         }
                     }
 
@@ -214,6 +239,60 @@ class PlayerActivity : FragmentActivity() {
                 exo.prepare()
                 exo.playWhenReady = true
             }
+    }
+
+    // -------------------------------------------------------------------------
+    // Playlist
+    // -------------------------------------------------------------------------
+
+    private fun updatePlaylistInfoView() {
+        if (playlistUrls.size > 1) {
+            tvPlaylistInfo.text = "${playlistIndex + 1} / ${playlistUrls.size}"
+            tvPlaylistInfo.visibility = View.VISIBLE
+        } else {
+            tvPlaylistInfo.visibility = View.GONE
+        }
+    }
+
+    private fun advancePlaylist() {
+        val nextIndex = playlistIndex + 1
+        if (nextIndex >= playlistUrls.size) {
+            finish()
+            return
+        }
+        playlistIndex = nextIndex
+        val nextUrl = playlistUrls[nextIndex]
+        val nextTitle = playlistTitles.getOrNull(nextIndex) ?: ""
+        val nextDuration = playlistDurations.getOrNull(nextIndex) ?: 0
+
+        tvChannelName.text = nextTitle
+        tvEventTitle.text = ""
+        tvEventTime.text = ""
+        if (nextDuration > 0) {
+            val h = nextDuration / 3600
+            val m = (nextDuration % 3600) / 60
+            val s = nextDuration % 60
+            tvEventTime.text = if (h > 0) "Duration: %d:%02d:%02d".format(h, m, s)
+                               else "Duration: %d:%02d".format(m, s)
+        }
+
+        isSeekable = false
+        userPaused = false
+        tvPauseStatus.visibility = View.GONE
+        seekRow.visibility = View.GONE
+
+        updatePlaylistInfoView()
+
+        player?.also { exo ->
+            val mediaItem = MediaItem.Builder()
+                .setUri(nextUrl)
+                .setMimeType(androidx.media3.common.MimeTypes.VIDEO_MP2T)
+                .build()
+            exo.setMediaItem(mediaItem)
+            exo.prepare()
+            exo.playWhenReady = true
+        }
+        showOsd()
     }
 
     // -------------------------------------------------------------------------

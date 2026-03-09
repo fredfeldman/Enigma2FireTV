@@ -1,26 +1,32 @@
 package com.enigma2.firetv.ui.epg
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.model.Service
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
+import com.enigma2.firetv.data.repository.Enigma2Repository
 import com.enigma2.firetv.ui.player.PlayerActivity
 import com.enigma2.firetv.ui.viewmodel.ChannelViewModel
 import com.enigma2.firetv.ui.viewmodel.EpgViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,6 +53,9 @@ class EpgFragment : Fragment() {
     private lateinit var tvSelectedTime: TextView
     private lateinit var tvSelectedDesc: TextView
     private lateinit var eventInfoBar: LinearLayout
+    private lateinit var btnRecord: Button
+
+    private var selectedEvent: EpgEvent? = null
 
     /** Simple single-column adapter that shows channel names aligned to EPG rows. */
     private inner class EpgChannelAdapter(private val services: List<Service>) :
@@ -117,6 +126,9 @@ class EpgFragment : Fragment() {
         tvSelectedTime = view.findViewById(R.id.tv_selected_time)
         tvSelectedDesc = view.findViewById(R.id.tv_selected_desc)
         eventInfoBar = view.findViewById(R.id.event_info_bar)
+        btnRecord = view.findViewById(R.id.btn_record)
+
+        btnRecord.setOnClickListener { selectedEvent?.let { confirmRecord(it) } }
 
         // Sync time ruler scroll with grid scroll
         epgHScroll.setOnScrollChangeListener { _, scrollX, _, _, _ ->
@@ -168,6 +180,7 @@ class EpgFragment : Fragment() {
     }
 
     private fun updateInfoBar(event: EpgEvent?) {
+        selectedEvent = event
         if (event == null) {
             eventInfoBar.visibility = View.GONE
             return
@@ -183,6 +196,41 @@ class EpgFragment : Fragment() {
         tvSelectedDesc.text = event.shortDesc?.takeIf { it.isNotBlank() }
             ?: event.longDesc?.takeIf { it.isNotBlank() }
             ?: ""
+        // Show the Record button only for events that haven't ended yet
+        btnRecord.visibility = if (event.endMs > System.currentTimeMillis()) View.VISIBLE else View.GONE
+    }
+
+    private fun confirmRecord(event: EpgEvent) {
+        val timeStr = buildString {
+            append(timeFmt.format(Date(event.beginMs)))
+            append(" – ")
+            append(timeFmt.format(Date(event.endMs)))
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.record_confirm_title))
+            .setMessage(getString(R.string.record_confirm_message, event.title, timeStr))
+            .setPositiveButton(getString(R.string.record_confirm_ok)) { _, _ -> scheduleRecording(event) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun scheduleRecording(event: EpgEvent) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val result = Enigma2Repository().addTimer(event)
+                val msg = if (result.result)
+                    getString(R.string.record_scheduled_ok, event.title)
+                else
+                    getString(R.string.record_scheduled_fail, result.message ?: "")
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(R.string.record_scheduled_fail, e.message ?: ""),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
     }
 
     private fun launchPlayer(service: Service) {

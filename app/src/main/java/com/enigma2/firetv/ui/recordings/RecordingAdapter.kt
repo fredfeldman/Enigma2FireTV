@@ -16,12 +16,14 @@ import java.util.Locale
 /**
  * RecyclerView adapter for the recordings list.
  *
- * @param onRecordingClick   Invoked when OK / Enter is pressed on an item.
- * @param onRecordingFocused Invoked whenever an item gains D-pad focus.
+ * @param onRecordingClick      Invoked when OK / Enter is pressed on an item.
+ * @param onRecordingFocused    Invoked whenever an item gains D-pad focus.
+ * @param onRecordingLongClick  Invoked on long-press (for add-to-playlist).
  */
 class RecordingAdapter(
     private val onRecordingClick: (Recording) -> Unit,
-    private val onRecordingFocused: (Recording) -> Unit
+    private val onRecordingFocused: (Recording) -> Unit,
+    private val onRecordingLongClick: ((Recording) -> Unit)? = null
 ) : ListAdapter<Recording, RecordingAdapter.ViewHolder>(DIFF_CALLBACK) {
 
     private val dateFmt = SimpleDateFormat("dd MMM yyyy  HH:mm", Locale.getDefault())
@@ -60,6 +62,10 @@ class RecordingAdapter(
         ).joinToString("   ")
 
         holder.itemView.setOnClickListener { onRecordingClick(recording) }
+        holder.itemView.setOnLongClickListener {
+            onRecordingLongClick?.invoke(recording)
+            onRecordingLongClick != null
+        }
         holder.itemView.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) onRecordingFocused(recording)
         }

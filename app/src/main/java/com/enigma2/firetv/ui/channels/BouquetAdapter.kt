@@ -16,6 +16,16 @@ class BouquetAdapter(
 
     private var selectedPosition = 0
 
+    fun setSelectedBouquet(ref: String) {
+        val newPos = currentList.indexOfFirst { it.ref == ref }
+        if (newPos >= 0 && newPos != selectedPosition) {
+            val prev = selectedPosition
+            selectedPosition = newPos
+            notifyItemChanged(prev)
+            notifyItemChanged(selectedPosition)
+        }
+    }
+
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tv_bouquet_name)
     }
@@ -36,9 +46,6 @@ class BouquetAdapter(
             notifyItemChanged(prev)
             notifyItemChanged(selectedPosition)
             onBouquetSelected(bouquet)
-        }
-        holder.itemView.setOnFocusChangeListener { _, hasFocus ->
-            if (hasFocus) holder.itemView.isSelected = true
         }
     }
 

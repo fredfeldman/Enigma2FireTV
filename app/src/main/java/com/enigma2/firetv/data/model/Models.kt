@@ -120,3 +120,10 @@ data class Recording(
             ?: description?.takeIf { it.isNotBlank() }
             ?: ""
 }
+
+// ---------- Timer ----------
+
+data class TimerResponse(
+    @SerializedName("result") val result: Boolean,
+    @SerializedName("message") val message: String?
+)

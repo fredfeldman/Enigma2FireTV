@@ -64,4 +64,17 @@
         android:progressTint="@color/accent"
         android:progressBackgroundTint="@color/progress_background" />
 
+    <!-- Favorite indicator (visual only – toggled via long-press menu) -->
+    <TextView
+        android:id="@+id/btn_favorite"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:layout_marginStart="4dp"
+        android:focusable="false"
+        android:clickable="false"
+        android:text="☆"
+        android:contentDescription="@string/favorite_toggle" />
+
 </LinearLayout>

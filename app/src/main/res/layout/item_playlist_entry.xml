@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="10dp"
+    android:background="@drawable/selector_channel_item"
+    android:focusable="true">
+
+    <!-- Position number -->
+    <TextView
+        android:id="@+id/tv_entry_index"
+        android:layout_width="36dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/accent"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <!-- Title + channel -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="8dp">
+
+        <TextView
+            android:id="@+id/tv_entry_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tv_entry_channel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_secondary"
+            android:textSize="11sp"
+            android:layout_marginTop="2dp" />
+
+    </LinearLayout>
+
+    <!-- Reorder / remove controls -->
+    <TextView
+        android:id="@+id/btn_entry_up"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:text="▲"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:background="@drawable/bg_button"
+        android:focusable="true"
+        android:layout_marginEnd="4dp" />
+
+    <TextView
+        android:id="@+id/btn_entry_down"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:text="▼"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:background="@drawable/bg_button"
+        android:focusable="true"
+        android:layout_marginEnd="4dp" />
+
+    <TextView
+        android:id="@+id/btn_entry_remove"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:text="✕"
+        android:textColor="@color/error"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:background="@drawable/bg_button"
+        android:focusable="true" />
+
+</LinearLayout>

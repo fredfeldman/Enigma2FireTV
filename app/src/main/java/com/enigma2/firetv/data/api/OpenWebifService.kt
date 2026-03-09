@@ -5,6 +5,7 @@ import com.enigma2.firetv.data.model.GetServicesResponse
 import com.enigma2.firetv.data.model.MovieListResponse
 import com.enigma2.firetv.data.model.NowNextResponse
 import com.enigma2.firetv.data.model.ServicesResponse
+import com.enigma2.firetv.data.model.TimerResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -60,4 +61,23 @@ interface OpenWebifService {
      */
     @GET("api/movielist")
     suspend fun getMovieList(@Query("dirname") dirname: String? = null): MovieListResponse
+
+    /**
+     * Adds a timer (recording) on the receiver.
+     * @param sRef     Service reference of the channel to record.
+     * @param begin    Recording start time as Unix timestamp (seconds).
+     * @param end      Recording end time as Unix timestamp (seconds).
+     * @param name     Event/show name (used as the recording filename prefix).
+     * @param eit      EPG event ID (optional, helps the receiver link the timer to EPG data).
+     * @param justPlay 0 = record (default), 1 = zap only.
+     */
+    @GET("api/timeradd")
+    suspend fun addTimer(
+        @Query("sRef") sRef: String,
+        @Query("begin") begin: Long,
+        @Query("end") end: Long,
+        @Query("name") name: String,
+        @Query("eit") eit: Long = 0,
+        @Query("justplay") justPlay: Int = 0
+    ): TimerResponse
 }

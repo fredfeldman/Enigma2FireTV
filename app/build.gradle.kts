@@ -11,8 +11,8 @@ android {
         applicationId = "com.enigma2.firetv"
         minSdk = 25
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.01"
     }
 
     buildTypes {
@@ -36,6 +36,14 @@ android {
 
     buildFeatures {
         viewBinding = true
+    }
+
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.all {
+            val output = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            output.outputFileName = "Enigma2FireTV-${variant.buildType.name}-${variant.versionName}.apk"
+        }
     }
 }
 

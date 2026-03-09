@@ -1,10 +1,12 @@
 package com.enigma2.firetv.ui.recordings
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
@@ -13,9 +15,12 @@ import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.enigma2.firetv.R
+import com.enigma2.firetv.data.model.PlaylistEntry
 import com.enigma2.firetv.data.model.Recording
+import com.enigma2.firetv.data.prefs.PlaylistPreferences
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.ui.player.PlayerActivity
+import com.enigma2.firetv.ui.playlists.PlaylistManagerFragment
 import com.enigma2.firetv.ui.viewmodel.RecordingViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -30,6 +35,7 @@ class RecordingsFragment : Fragment() {
 
     private val viewModel: RecordingViewModel by viewModels()
     private lateinit var prefs: ReceiverPreferences
+    private lateinit var playlistPrefs: PlaylistPreferences
 
     // List-panel views
     private lateinit var rvRecordings: RecyclerView
@@ -37,6 +43,7 @@ class RecordingsFragment : Fragment() {
     private lateinit var tvError: TextView
     private lateinit var tvEmpty: TextView
     private lateinit var btnRefresh: TextView
+    private lateinit var btnPlaylists: TextView
 
     // Detail-panel views
     private lateinit var tvDetailHint: TextView
@@ -58,12 +65,19 @@ class RecordingsFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = ReceiverPreferences(requireContext())
+        playlistPrefs = PlaylistPreferences(requireContext())
 
         bindViews(view)
         setupList()
         observeViewModel()
 
         btnRefresh.setOnClickListener { viewModel.loadRecordings() }
+        btnPlaylists.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.main_container, PlaylistManagerFragment())
+                .addToBackStack(null)
+                .commit()
+        }
 
         if (viewModel.recordings.value.isNullOrEmpty()) {
             viewModel.loadRecordings()
@@ -76,6 +90,7 @@ class RecordingsFragment : Fragment() {
         tvError          = view.findViewById(R.id.tv_error)
         tvEmpty          = view.findViewById(R.id.tv_empty)
         btnRefresh       = view.findViewById(R.id.btn_refresh)
+        btnPlaylists     = view.findViewById(R.id.btn_playlists)
 
         tvDetailHint        = view.findViewById(R.id.tv_detail_hint)
         tvDetailTitle       = view.findViewById(R.id.tv_detail_title)
@@ -90,7 +105,8 @@ class RecordingsFragment : Fragment() {
     private fun setupList() {
         adapter = RecordingAdapter(
             onRecordingClick   = { recording -> playRecording(recording) },
-            onRecordingFocused = { recording -> viewModel.onRecordingFocused(recording) }
+            onRecordingFocused = { recording -> viewModel.onRecordingFocused(recording) },
+            onRecordingLongClick = { recording -> showAddToPlaylistDialog(recording) }
         )
         rvRecordings.layoutManager = LinearLayoutManager(requireContext())
         rvRecordings.adapter = adapter
@@ -154,6 +170,78 @@ class RecordingsFragment : Fragment() {
         } else {
             svDescription.visibility = View.GONE
         }
+    }
+
+    private fun showAddToPlaylistDialog(recording: Recording) {
+        val filename = recording.filename ?: return
+        val playlists = playlistPrefs.playlists
+
+        if (playlists.isEmpty()) {
+            // No playlists yet — offer to create one
+            AlertDialog.Builder(requireContext())
+                .setTitle(getString(R.string.playlist_add_to))
+                .setMessage(getString(R.string.playlist_none_yet))
+                .setPositiveButton(getString(R.string.playlist_new_title)) { _, _ ->
+                    showCreateAndAddDialog(recording)
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+            return
+        }
+
+        val names = (playlists.map { it.name } + getString(R.string.playlist_new_title)).toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.playlist_add_to))
+            .setItems(names) { _, which ->
+                if (which < playlists.size) {
+                    val entry = PlaylistEntry(
+                        filename = filename,
+                        title = recording.displayTitle,
+                        channel = recording.channelName ?: "",
+                        durationSec = recording.durationInSeconds
+                    )
+                    playlistPrefs.addEntryToPlaylist(playlists[which].id, entry)
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        getString(R.string.playlist_added, playlists[which].name),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    showCreateAndAddDialog(recording)
+                }
+            }
+            .show()
+    }
+
+    private fun showCreateAndAddDialog(recording: Recording) {
+        val filename = recording.filename ?: return
+        val et = EditText(requireContext()).apply {
+            hint = getString(R.string.playlist_name_hint)
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.playlist_new_title))
+            .setView(et)
+            .setPositiveButton(getString(R.string.create)) { _, _ ->
+                val name = et.text.toString().trim()
+                if (name.isNotBlank()) {
+                    val pl = playlistPrefs.createPlaylist(name)
+                    val entry = PlaylistEntry(
+                        filename = filename,
+                        title = recording.displayTitle,
+                        channel = recording.channelName ?: "",
+                        durationSec = recording.durationInSeconds
+                    )
+                    playlistPrefs.addEntryToPlaylist(pl.id, entry)
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        getString(R.string.playlist_added, name),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun playRecording(recording: Recording) {
