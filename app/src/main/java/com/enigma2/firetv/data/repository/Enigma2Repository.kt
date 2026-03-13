@@ -6,9 +6,12 @@ import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.model.NowNextEvent
 import com.enigma2.firetv.data.model.Recording
 import com.enigma2.firetv.data.model.Service
+import com.enigma2.firetv.data.model.Timer
+import com.enigma2.firetv.data.model.TimerDeleteResponse
 import com.enigma2.firetv.data.model.TimerResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.ResponseBody
 
 /**
  * Single source of truth for all Enigma2 data.
@@ -124,16 +127,50 @@ class Enigma2Repository {
         )
     }
 
-    // -------------------------------------------------------------------------
-    // Zap
-    // -------------------------------------------------------------------------
-
-    suspend fun zapToService(serviceRef: String): Boolean = withContext(Dispatchers.IO) {
+    /**
+     * Returns all timers currently scheduled on the receiver.
+     */
+    suspend fun getTimers(): List<Timer> = withContext(Dispatchers.IO) {
         try {
-            val result = ApiClient.service.zapToService(serviceRef)
-            result["result"] as? Boolean ?: false
+            ApiClient.service.getTimerList().timers ?: emptyList()
         } catch (e: Exception) {
-            false
+            android.util.Log.e("Enigma2Repo", "getTimers failed", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Deletes a timer from the receiver.
+     */
+    suspend fun deleteTimer(timer: Timer): TimerDeleteResponse = withContext(Dispatchers.IO) {
+        ApiClient.service.deleteTimer(
+            sRef = timer.serviceRef,
+            begin = timer.beginTimestamp,
+            end = timer.endTimestamp
+        )
+    }
+
+    /**
+     * Searches EPG across all services for the given query string.
+     */
+    suspend fun searchEpg(query: String): List<EpgEvent> = withContext(Dispatchers.IO) {
+        try {
+            ApiClient.service.searchEpg(query).events ?: emptyList()
+        } catch (e: Exception) {
+            android.util.Log.e("Enigma2Repo", "searchEpg failed", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Fetches a raw screenshot JPEG from the receiver.
+     */
+    suspend fun getScreenshot(): ResponseBody? = withContext(Dispatchers.IO) {
+        try {
+            ApiClient.service.getScreenshot()
+        } catch (e: Exception) {
+            android.util.Log.e("Enigma2Repo", "getScreenshot failed", e)
+            null
         }
     }
 }

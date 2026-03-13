@@ -9,5 +9,7 @@ data class DeviceProfile(
     val port: Int = 80,
     val useHttps: Boolean = false,
     val username: String = "",
-    val password: String = ""
+    val password: String = "",
+    /** Optional MAC address for Wake-on-LAN, e.g. "AA:BB:CC:DD:EE:FF" */
+    val macAddress: String = ""
 )

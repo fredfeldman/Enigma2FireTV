@@ -108,4 +108,51 @@
         <item quantity="other">%d recordings</item>
     </plurals>
 
+    <!-- Timer management -->
+    <string name="btn_timers">Timers</string>
+    <string name="timers">Timers</string>
+    <string name="refresh">Refresh</string>
+    <string name="no_timers">No timers scheduled on receiver</string>
+    <string name="timer_delete_title">Delete Timer</string>
+    <string name="timer_delete_message">Delete timer for \"%s\"?</string>
+    <string name="timer_deleted_ok">Timer deleted: %s</string>
+    <string name="timer_deleted_fail">Failed to delete timer: %s</string>
+
+    <!-- EPG Search -->
+    <string name="btn_epg_search">Search EPG</string>
+    <string name="epg_search_title">EPG Search</string>
+    <string name="epg_search_hint">Search programmes…</string>
+    <string name="search">Search</string>
+    <string name="search_too_short">Type at least 2 characters</string>
+    <string name="epg_search_no_results">No results found</string>
+    <string name="epg_search_not_live">This programme is not currently airing</string>
+
+    <!-- Wake-on-LAN -->
+    <string name="btn_wol">Wake</string>
+    <string name="wol_no_mac">No MAC address set for this device. Edit device in Settings.</string>
+    <string name="wol_sent">Wake-on-LAN packet sent</string>
+    <string name="wol_failed">Failed to send Wake-on-LAN packet</string>
+
+    <!-- Screenshot -->
+    <string name="btn_screenshot">Screenshot</string>
+    <string name="screenshot_loading">Loading screenshot…</string>
+    <string name="screenshot_failed">Could not load screenshot</string>
+    <string name="screenshot_title">Receiver Screenshot</string>
+
+    <!-- Resume playback -->
+    <string name="resume_title">Resume Playback</string>
+    <string name="resume_message">Resume from %s?</string>
+    <string name="resume_yes">Resume</string>
+    <string name="resume_no">Start Over</string>
+
+    <!-- Setup: MAC address -->
+    <string name="hint_mac_address">MAC address for Wake-on-LAN (optional)</string>
+
+    <!-- Video browser folder navigation -->
+    <string name="video_folder_tap">Tap to open folder</string>
+
+    <!-- Dark/light theme -->
+    <string name="pref_title_night_mode">Dark Theme</string>
+    <string name="pref_summary_night_mode">Use dark theme (restart may be required)</string>
+
 </resources>

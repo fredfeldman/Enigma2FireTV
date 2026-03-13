@@ -2,6 +2,7 @@ package com.enigma2.firetv.ui.settings
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.preference.EditTextPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
@@ -70,6 +71,17 @@ class SettingsFragment : PreferenceFragmentCompat() {
         findPreference<Preference>("manage_hidden_bouquets")?.setOnPreferenceClickListener {
             startActivity(Intent(requireContext(), HideBouquetsActivity::class.java))
             true
+        }
+
+        findPreference<SwitchPreferenceCompat>("night_mode_switch")?.apply {
+            isChecked = prefs.nightMode == AppCompatDelegate.MODE_NIGHT_YES
+            setOnPreferenceChangeListener { _, newValue ->
+                val mode = if (newValue as Boolean) AppCompatDelegate.MODE_NIGHT_YES
+                           else AppCompatDelegate.MODE_NIGHT_NO
+                prefs.nightMode = mode
+                AppCompatDelegate.setDefaultNightMode(mode)
+                true
+            }
         }
     }
 

@@ -34,6 +34,7 @@ class SetupFragment : Fragment() {
     private lateinit var etPort: TextInputEditText
     private lateinit var etUsername: TextInputEditText
     private lateinit var etPassword: TextInputEditText
+    private lateinit var etMacAddress: TextInputEditText
     private lateinit var cbHttps: CheckBox
     private lateinit var btnConnect: Button
     private lateinit var btnCancel: Button
@@ -56,6 +57,7 @@ class SetupFragment : Fragment() {
         etPort = view.findViewById(R.id.et_port)
         etUsername = view.findViewById(R.id.et_username)
         etPassword = view.findViewById(R.id.et_password)
+        etMacAddress = view.findViewById(R.id.et_mac_address)
         cbHttps = view.findViewById(R.id.cb_https)
         btnConnect = view.findViewById(R.id.btn_connect)
         btnCancel = view.findViewById(R.id.btn_cancel)
@@ -75,6 +77,7 @@ class SetupFragment : Fragment() {
                 etUsername.setText(device.username)
                 etPassword.setText(device.password)
                 cbHttps.isChecked = device.useHttps
+                etMacAddress.setText(device.macAddress)
             }
         } else {
             etPort.setText("80")
@@ -96,6 +99,7 @@ class SetupFragment : Fragment() {
         val username = etUsername.text?.toString()?.trim() ?: ""
         val password = etPassword.text?.toString() ?: ""
         val useHttps = cbHttps.isChecked
+        val macAddress = etMacAddress.text?.toString()?.trim() ?: ""
 
         if (host.isBlank()) {
             showStatus(getString(R.string.hint_receiver_ip) + " is required", isError = true)
@@ -130,7 +134,8 @@ class SetupFragment : Fragment() {
                     if (existing != null) {
                         val updated = existing.copy(
                             name = deviceName, host = host, port = port,
-                            useHttps = useHttps, username = username, password = password
+                            useHttps = useHttps, username = username, password = password,
+                            macAddress = macAddress
                         )
                         prefs.updateDevice(updated)
                         // If we edited a non-active device, restore ApiClient to active device
@@ -146,7 +151,8 @@ class SetupFragment : Fragment() {
                     // Add new device
                     val profile = DeviceProfile(
                         name = deviceName, host = host, port = port,
-                        useHttps = useHttps, username = username, password = password
+                        useHttps = useHttps, username = username, password = password,
+                        macAddress = macAddress
                     )
                     if (showCancel) {
                         // From device picker: add, switch, navigate to channels

@@ -47,4 +47,14 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="Appearance">
+
+        <SwitchPreferenceCompat
+            android:key="night_mode_switch"
+            android:title="@string/pref_title_night_mode"
+            android:summary="@string/pref_summary_night_mode"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

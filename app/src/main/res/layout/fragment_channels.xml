@@ -111,9 +111,70 @@
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_timers"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_timers"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_epg_search"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_epg_search"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_wol"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_wol"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_screenshot"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_screenshot"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
                 android:focusable="true" />
 
         </LinearLayout>
+
+        <!-- Number jump overlay -->
+        <TextView
+            android:id="@+id/tv_number_jump"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@color/surface_dark"
+            android:textColor="@color/accent"
+            android:textSize="48sp"
+            android:textStyle="bold"
+            android:padding="24dp"
+            android:visibility="gone" />
 
         <!-- Loading / error states -->
         <ProgressBar

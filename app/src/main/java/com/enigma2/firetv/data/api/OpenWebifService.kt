@@ -5,9 +5,13 @@ import com.enigma2.firetv.data.model.GetServicesResponse
 import com.enigma2.firetv.data.model.MovieListResponse
 import com.enigma2.firetv.data.model.NowNextResponse
 import com.enigma2.firetv.data.model.ServicesResponse
+import com.enigma2.firetv.data.model.TimerDeleteResponse
+import com.enigma2.firetv.data.model.TimerListResponse
 import com.enigma2.firetv.data.model.TimerResponse
+import okhttp3.ResponseBody
 import retrofit2.http.GET
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 /**
  * Retrofit interface for the OpenWebif REST API exposed by Enigma2 receivers.
@@ -80,4 +84,34 @@ interface OpenWebifService {
         @Query("eit") eit: Long = 0,
         @Query("justplay") justPlay: Int = 0
     ): TimerResponse
+
+    /**
+     * Returns the list of all timers currently scheduled on the receiver.
+     */
+    @GET("api/timerlist")
+    suspend fun getTimerList(): TimerListResponse
+
+    /**
+     * Deletes a timer identified by service reference + begin + end times.
+     */
+    @GET("api/timerdelete")
+    suspend fun deleteTimer(
+        @Query("sRef") sRef: String,
+        @Query("begin") begin: Long,
+        @Query("end") end: Long
+    ): TimerDeleteResponse
+
+    /**
+     * Searches EPG across all services for events matching [query].
+     */
+    @GET("api/epgsearch")
+    suspend fun searchEpg(@Query("search") query: String): EpgResponse
+
+    /**
+     * Returns a screenshot of the currently displayed image on the receiver.
+     * The response body is a JPEG image.
+     */
+    @Streaming
+    @GET("api/screenshot")
+    suspend fun getScreenshot(): ResponseBody
 }

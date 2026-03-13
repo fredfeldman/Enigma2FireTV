@@ -127,3 +127,37 @@ data class TimerResponse(
     @SerializedName("result") val result: Boolean,
     @SerializedName("message") val message: String?
 )
+
+data class TimerListResponse(
+    @SerializedName("timers") val timers: List<Timer>?
+)
+
+data class Timer(
+    @SerializedName("serviceref") val serviceRef: String,
+    @SerializedName("eit") val eit: Long = 0,
+    @SerializedName("name") val name: String,
+    @SerializedName("description") val description: String?,
+    @SerializedName("begin") val beginTimestamp: Long,
+    @SerializedName("end") val endTimestamp: Long,
+    @SerializedName("state") val state: Int,
+    @SerializedName("disabled") val disabled: Int = 0,
+    @SerializedName("justplay") val justPlay: Int = 0,
+    @SerializedName("repeated") val repeated: Int = 0,
+    @SerializedName("servicename") val serviceName: String?
+) {
+    val beginMs: Long get() = beginTimestamp * 1000L
+    val endMs: Long get() = endTimestamp * 1000L
+    fun stateLabel(): String = when (state) {
+        0 -> "Waiting"
+        1 -> "Preparing"
+        2 -> "Recording"
+        3 -> "Done"
+        4 -> "Failed"
+        else -> "Unknown"
+    }
+}
+
+data class TimerDeleteResponse(
+    @SerializedName("result") val result: Boolean,
+    @SerializedName("message") val message: String?
+)

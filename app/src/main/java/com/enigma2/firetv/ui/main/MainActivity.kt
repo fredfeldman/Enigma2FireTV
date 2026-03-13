@@ -1,6 +1,8 @@
 package com.enigma2.firetv.ui.main
 
 import android.os.Bundle
+import android.view.KeyEvent
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModelProvider
@@ -21,6 +23,7 @@ class MainActivity : FragmentActivity() {
     private lateinit var prefs: ReceiverPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(ReceiverPreferences(this).nightMode)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -79,5 +82,17 @@ class MainActivity : FragmentActivity() {
         ViewModelProvider(this)[ChannelViewModel::class.java].resetForNewDevice()
         supportFragmentManager.popBackStackImmediate(null, FragmentManager.POP_BACK_STACK_INCLUSIVE)
         showChannels()
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        val digit = keyCode - KeyEvent.KEYCODE_0
+        if (digit in 0..9) {
+            val cf = supportFragmentManager.findFragmentById(R.id.main_container)
+            if (cf is ChannelsFragment) {
+                cf.handleNumberKey(digit)
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 }

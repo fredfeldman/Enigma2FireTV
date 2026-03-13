@@ -174,6 +174,28 @@ class ReceiverPreferences(context: Context) {
 
     fun isFavorite(serviceRef: String) = favoriteServices.any { it.ref == serviceRef }
 
+    // ── Playback position resume ───────────────────────────────────────────
+
+    fun getPlaybackPosition(streamUrl: String): Long {
+        return prefs.getLong(positionKey(streamUrl), 0L)
+    }
+
+    fun savePlaybackPosition(streamUrl: String, posMs: Long) {
+        prefs.edit { putLong(positionKey(streamUrl), posMs) }
+    }
+
+    fun clearPlaybackPosition(streamUrl: String) {
+        prefs.edit { remove(positionKey(streamUrl)) }
+    }
+
+    private fun positionKey(url: String) = KEY_POSITION_PREFIX + url.hashCode().toString()
+
+    // ── Theme ─────────────────────────────────────────────────────────────
+
+    var nightMode: Int
+        get() = prefs.getInt(KEY_NIGHT_MODE, androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
+        set(value) = prefs.edit { putInt(KEY_NIGHT_MODE, value) }
+
     // ── Convenience ───────────────────────────────────────────────────────
 
     val isConfigured: Boolean
@@ -226,5 +248,7 @@ class ReceiverPreferences(context: Context) {
         const val KEY_FAVORITES = "favorite_service_refs"
         const val KEY_DEVICE_PROFILES = "device_profiles"
         const val KEY_ACTIVE_DEVICE_ID = "active_device_id"
+        private const val KEY_POSITION_PREFIX = "pos_"
+        private const val KEY_NIGHT_MODE = "night_mode"
     }
 }

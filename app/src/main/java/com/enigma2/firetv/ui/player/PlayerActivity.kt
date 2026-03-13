@@ -91,6 +91,7 @@ class PlayerActivity : FragmentActivity() {
     private val repository = Enigma2Repository()
     private val handler = Handler(Looper.getMainLooper())
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+    private var currentStreamUrl: String = ""
 
     private val hideOsdRunnable = Runnable { hideOsd() }
     private val clearSeekHintRunnable = Runnable { tvSeekHint.text = "" }
@@ -146,6 +147,7 @@ class PlayerActivity : FragmentActivity() {
             showError(getString(R.string.stream_error))
             return
         }
+        currentStreamUrl = streamUrl
         val channelName = intent.getStringExtra(EXTRA_CHANNEL_NAME) ?: ""
         val serviceRef = intent.getStringExtra(EXTRA_SERVICE_REF) ?: ""
 
@@ -165,9 +167,38 @@ class PlayerActivity : FragmentActivity() {
                 tvEventTime.text = if (h > 0) "Duration: %d:%02d:%02d".format(h, m, s)
                                    else "Duration: %d:%02d".format(m, s)
             }
+            // Offer resume if there is a saved position
+            val savedPos = prefs.getPlaybackPosition(streamUrl)
+            if (savedPos > 30_000L) {
+                offerResume(savedPos)
+            }
         } else {
             loadEpgInfo(serviceRef)
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Resume playback
+    // -------------------------------------------------------------------------
+
+    private fun offerResume(savedPos: Long) {
+        handler.postDelayed({
+            val h = savedPos / 3_600_000L
+            val m = (savedPos % 3_600_000L) / 60_000L
+            val s = (savedPos % 60_000L) / 1_000L
+            val posString = if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+            android.app.AlertDialog.Builder(this)
+                .setTitle(getString(R.string.resume_title))
+                .setMessage(getString(R.string.resume_message, posString))
+                .setPositiveButton(getString(R.string.resume_yes)) { _, _ ->
+                    player?.seekTo(savedPos)
+                    showOsd()
+                }
+                .setNegativeButton(getString(R.string.resume_no)) { _, _ ->
+                    prefs.clearPlaybackPosition(currentStreamUrl)
+                }
+                .show()
+        }, 600L)
     }
 
     // -------------------------------------------------------------------------
@@ -216,6 +247,10 @@ class PlayerActivity : FragmentActivity() {
                             }
                             Player.STATE_ENDED -> {
                                 showLoading(false)
+                                // Clear saved position since playback finished
+                                if (currentStreamUrl.isNotBlank()) {
+                                    prefs.clearPlaybackPosition(currentStreamUrl)
+                                }
                                 advancePlaylist()
                             }
                             Player.STATE_IDLE -> showLoading(false)
@@ -495,6 +530,22 @@ class PlayerActivity : FragmentActivity() {
     override fun onPause() {
         super.onPause()
         player?.pause()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Save position for seekable (recorded) content so we can offer resume later
+        val exo = player ?: return
+        if (isSeekable && currentStreamUrl.isNotBlank()) {
+            val pos = exo.currentPosition
+            val dur = exo.duration
+            // Don't save if within 30 s of the end
+            if (dur > 0 && (dur - pos) > 30_000L && pos > 5_000L) {
+                prefs.savePlaybackPosition(currentStreamUrl, pos)
+            } else if (dur > 0 && (dur - pos) <= 30_000L) {
+                prefs.clearPlaybackPosition(currentStreamUrl)
+            }
+        }
     }
 
     override fun onResume() {
