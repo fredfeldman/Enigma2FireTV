@@ -45,7 +45,7 @@ cd Enigma2FireTV
 
 # Sideload to Fire TV (enable ADB debugging in Fire TV Settings > My Fire TV > Developer Options)
 adb connect <FireTV-IP>:5555
-adb install -r app/build/outputs/apk/debug/Enigma2FireTV-debug-1.0.apk
+adb install -r app/build/outputs/apk/debug/Enigma2FireTV-debug-1.02.apk
 ```
 
 ## Project Structure

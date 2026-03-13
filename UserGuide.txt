@@ -1,5 +1,7 @@
 # Enigma2 FireTV – User Guide
 
+> **Version 1.02**
+
 ## Table of Contents
 1. [First-Time Setup](#1-first-time-setup)
 2. [Main Screen](#2-main-screen)
