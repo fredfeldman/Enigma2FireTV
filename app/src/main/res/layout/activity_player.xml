@@ -196,7 +196,78 @@
 
         </LinearLayout>
 
+        <!-- Action buttons: Audio / Subtitles / Aspect Ratio / Sleep Timer -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="10dp">
+
+            <TextView
+                android:id="@+id/btn_audio"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_audio"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_subtitles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_subtitles"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_aspect"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/aspect_fit"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_sleep"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_sleep"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:focusable="true" />
+
+        </LinearLayout>
+
     </LinearLayout>
+
+    <!-- Bitrate / resolution overlay (top-right, visible when OSD is open) -->
+    <TextView
+        android:id="@+id/tv_bitrate_overlay"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:background="#B3000000"
+        android:textColor="@android:color/white"
+        android:textSize="11sp"
+        android:fontFamily="monospace"
+        android:padding="8dp"
+        android:layout_margin="8dp"
+        android:visibility="gone" />
 
     <!-- Loading indicator -->
     <ProgressBar

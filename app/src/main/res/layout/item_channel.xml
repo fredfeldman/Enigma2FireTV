@@ -64,6 +64,18 @@
         android:progressTint="@color/accent"
         android:progressBackgroundTint="@color/progress_background" />
 
+    <!-- Recording-in-progress badge -->
+    <TextView
+        android:id="@+id/tv_rec_badge"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="● REC"
+        android:textColor="#FFFF4444"
+        android:textSize="10sp"
+        android:textStyle="bold"
+        android:layout_marginStart="4dp"
+        android:visibility="gone" />
+
     <!-- Favorite indicator (visual only – toggled via long-press menu) -->
     <TextView
         android:id="@+id/btn_favorite"

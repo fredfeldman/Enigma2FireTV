@@ -22,6 +22,7 @@ import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.ui.player.PlayerActivity
 import com.enigma2.firetv.ui.playlists.PlaylistManagerFragment
 import com.enigma2.firetv.ui.viewmodel.RecordingViewModel
+import com.enigma2.firetv.ui.viewmodel.SortOrder
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,6 +45,7 @@ class RecordingsFragment : Fragment() {
     private lateinit var tvEmpty: TextView
     private lateinit var btnRefresh: TextView
     private lateinit var btnPlaylists: TextView
+    private lateinit var btnSort: TextView
 
     // Detail-panel views
     private lateinit var tvDetailHint: TextView
@@ -72,6 +74,7 @@ class RecordingsFragment : Fragment() {
         observeViewModel()
 
         btnRefresh.setOnClickListener { viewModel.loadRecordings() }
+        btnSort.setOnClickListener { showSortDialog() }
         btnPlaylists.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(R.id.main_container, PlaylistManagerFragment())
@@ -91,6 +94,7 @@ class RecordingsFragment : Fragment() {
         tvEmpty          = view.findViewById(R.id.tv_empty)
         btnRefresh       = view.findViewById(R.id.btn_refresh)
         btnPlaylists     = view.findViewById(R.id.btn_playlists)
+        btnSort          = view.findViewById(R.id.btn_sort)
 
         tvDetailHint        = view.findViewById(R.id.tv_detail_hint)
         tvDetailTitle       = view.findViewById(R.id.tv_detail_title)
@@ -170,6 +174,20 @@ class RecordingsFragment : Fragment() {
         } else {
             svDescription.visibility = View.GONE
         }
+    }
+
+    private fun showSortDialog() {
+        val opts = arrayOf(
+            getString(R.string.sort_date_newest),
+            getString(R.string.sort_date_oldest),
+            getString(R.string.sort_by_name),
+            getString(R.string.sort_by_channel)
+        )
+        val orders = arrayOf(SortOrder.DATE_DESC, SortOrder.DATE_ASC, SortOrder.NAME, SortOrder.CHANNEL)
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.sort_recordings))
+            .setItems(opts) { _, which -> viewModel.sortBy(orders[which]) }
+            .show()
     }
 
     private fun showAddToPlaylistDialog(recording: Recording) {

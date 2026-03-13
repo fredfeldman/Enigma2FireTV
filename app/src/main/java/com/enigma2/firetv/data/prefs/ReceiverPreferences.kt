@@ -211,6 +211,27 @@ class ReceiverPreferences(context: Context) {
         return "$scheme://$host:$port$piconPath"
     }
 
+    /** Service-ref picon URL with trailing underscore: 1_0_19_1_0_0_8c90fd2_0_0_0_.png */
+    fun piconFallbackUrl(serviceRef: String): String {
+        val scheme = if (useHttps) "https" else "http"
+        val file = serviceRef.lowercase().replace(':', '_') + ".png"
+        return "$scheme://$host:$port/picon/$file"
+    }
+
+    /** Service-ref picon URL without trailing underscore: 1_0_19_1_0_0_8c90fd2_0_0_0.png */
+    fun piconFallbackUrlShort(serviceRef: String): String {
+        val scheme = if (useHttps) "https" else "http"
+        val file = serviceRef.trimEnd(':').lowercase().replace(':', '_') + ".png"
+        return "$scheme://$host:$port/picon/$file"
+    }
+
+    /** Channel-name picon URL: "1 CANAL SUR HD.png" (percent-encoded) */
+    fun piconFallbackUrlByName(serviceName: String): String {
+        val scheme = if (useHttps) "https" else "http"
+        val encoded = android.net.Uri.encode(serviceName)
+        return "$scheme://$host:$port/picon/$encoded.png"
+    }
+
     fun recordingStreamUrl(filename: String): String {
         val scheme = if (useHttps) "https" else "http"
         val encoded = android.net.Uri.encode(filename)
@@ -250,5 +271,28 @@ class ReceiverPreferences(context: Context) {
         const val KEY_ACTIVE_DEVICE_ID = "active_device_id"
         private const val KEY_POSITION_PREFIX = "pos_"
         private const val KEY_NIGHT_MODE = "night_mode"
+        private const val KEY_LAST_CHANNEL_REF = "last_channel_ref"
+        private const val KEY_LAST_CHANNEL_NAME = "last_channel_name"
+        private const val KEY_AUTO_RESUME = "auto_resume_channel"
+    }
+
+    // ── Last played channel (auto-resume) ────────────────────────────────
+    var lastChannelRef: String
+        get() = prefs.getString(KEY_LAST_CHANNEL_REF, "") ?: ""
+        private set(value) = prefs.edit { putString(KEY_LAST_CHANNEL_REF, value) }
+
+    var lastChannelName: String
+        get() = prefs.getString(KEY_LAST_CHANNEL_NAME, "") ?: ""
+        private set(value) = prefs.edit { putString(KEY_LAST_CHANNEL_NAME, value) }
+
+    var autoResumeEnabled: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_RESUME, true)
+        set(value) = prefs.edit { putBoolean(KEY_AUTO_RESUME, value) }
+
+    fun saveLastChannel(ref: String, name: String) {
+        prefs.edit {
+            putString(KEY_LAST_CHANNEL_REF, ref)
+            putString(KEY_LAST_CHANNEL_NAME, name)
+        }
     }
 }

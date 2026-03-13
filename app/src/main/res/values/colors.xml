@@ -25,4 +25,5 @@
     <color name="epg_now">#FF1F3A1A</color>
     <color name="epg_future">#FF1E1E2E</color>
     <color name="epg_selected">#FF3A3A00</color>
+    <color name="epg_recording">#FF8B0000</color>
 </resources>

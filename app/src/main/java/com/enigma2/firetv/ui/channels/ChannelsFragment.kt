@@ -12,7 +12,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.EditText
 import android.widget.Toast
+import androidx.core.widget.addTextChangedListener
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -29,7 +31,6 @@ import com.enigma2.firetv.ui.epg.EpgFragment
 import com.enigma2.firetv.ui.epg.EpgSearchFragment
 import com.enigma2.firetv.ui.main.MainActivity
 import com.enigma2.firetv.ui.player.PlayerActivity
-import com.enigma2.firetv.ui.playlists.PlaylistManagerFragment
 import com.enigma2.firetv.ui.recordings.RecordingsFragment
 import com.enigma2.firetv.ui.settings.SettingsActivity
 import com.enigma2.firetv.ui.timers.TimersFragment
@@ -53,20 +54,20 @@ class ChannelsFragment : Fragment() {
     private lateinit var btnSwitchDevice: TextView
     private lateinit var btnEpg: TextView
     private lateinit var btnRecordings: TextView
-    private lateinit var btnPlaylists: TextView
     private lateinit var btnSettings: TextView
     private lateinit var btnTimers: TextView
-    private lateinit var btnEpgSearch: TextView
     private lateinit var btnWol: TextView
     private lateinit var btnScreenshot: TextView
     private lateinit var tvNumberJump: TextView
     private lateinit var loadingIndicator: ProgressBar
     private lateinit var tvError: TextView
+    private lateinit var etChannelFilter: EditText
 
     private lateinit var bouquetAdapter: BouquetAdapter
     private lateinit var channelAdapter: ChannelAdapter
     private lateinit var prefs: ReceiverPreferences
     private val repository = Enigma2Repository()
+    private var fullChannelList: List<Service> = emptyList()
 
     // Channel number jump state
     private val numberJumpHandler = Handler(Looper.getMainLooper())
@@ -91,15 +92,15 @@ class ChannelsFragment : Fragment() {
         btnSwitchDevice = view.findViewById(R.id.btn_switch_device)
         btnEpg = view.findViewById(R.id.btn_epg)
         btnRecordings = view.findViewById(R.id.btn_recordings)
-        btnPlaylists = view.findViewById(R.id.btn_playlists)
         btnSettings = view.findViewById(R.id.btn_settings)
         btnTimers = view.findViewById(R.id.btn_timers)
-        btnEpgSearch = view.findViewById(R.id.btn_epg_search)
         btnWol = view.findViewById(R.id.btn_wol)
         btnScreenshot = view.findViewById(R.id.btn_screenshot)
         tvNumberJump = view.findViewById(R.id.tv_number_jump)
         loadingIndicator = view.findViewById(R.id.loading_indicator)
         tvError = view.findViewById(R.id.tv_error)
+        etChannelFilter = view.findViewById(R.id.et_channel_filter)
+        etChannelFilter.addTextChangedListener { applyChannelFilter() }
 
         setupBouquetList()
         setupChannelList()
@@ -110,24 +111,12 @@ class ChannelsFragment : Fragment() {
         }
         btnEpg.setOnClickListener { openEpg() }
         btnRecordings.setOnClickListener { openRecordings() }
-        btnPlaylists.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.main_container, PlaylistManagerFragment())
-                .addToBackStack(null)
-                .commit()
-        }
         btnSettings.setOnClickListener {
             startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
         btnTimers.setOnClickListener {
             parentFragmentManager.beginTransaction()
                 .replace(R.id.main_container, TimersFragment())
-                .addToBackStack(null)
-                .commit()
-        }
-        btnEpgSearch.setOnClickListener {
-            parentFragmentManager.beginTransaction()
-                .replace(R.id.main_container, EpgSearchFragment())
                 .addToBackStack(null)
                 .commit()
         }
@@ -213,7 +202,8 @@ class ChannelsFragment : Fragment() {
         }
 
         viewModel.channels.observe(viewLifecycleOwner) { channels ->
-            channelAdapter.submitList(channels)
+            fullChannelList = channels
+            applyChannelFilter()
         }
 
         viewModel.selectedBouquet.observe(viewLifecycleOwner) { bouquet ->
@@ -227,9 +217,25 @@ class ChannelsFragment : Fragment() {
         viewModel.nowNext.observe(viewLifecycleOwner) { nowNextList ->
             channelAdapter.updateNowNext(nowNextList)
         }
+
+        viewModel.recordingServiceRefs.observe(viewLifecycleOwner) { refs ->
+            channelAdapter.updateRecordingRefs(refs)
+        }
+    }
+
+    private fun applyChannelFilter() {
+        val query = etChannelFilter.text.toString().trim()
+        val filtered = if (query.isEmpty()) fullChannelList
+                       else fullChannelList.filter { it.name.contains(query, ignoreCase = true) }
+        channelAdapter.submitList(filtered)
     }
 
     private fun playChannel(service: Service) {
+        prefs.saveLastChannel(service.ref, service.name)
+        // Fire-and-forget: also tune the receiver to this channel
+        viewLifecycleOwner.lifecycleScope.launch {
+            try { repository.zap(service.ref) } catch (_: Exception) {}
+        }
         val streamUrl = prefs.streamUrl(service.ref)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_STREAM_URL, streamUrl)
@@ -242,7 +248,7 @@ class ChannelsFragment : Fragment() {
     private fun showChannelInfo(service: Service) {
         val isFav = prefs.isFavorite(service.ref)
         val favOption = if (isFav) getString(R.string.favorite_remove) else getString(R.string.favorite_add)
-        val options = arrayOf(getString(R.string.channel_menu_epg), favOption)
+        val options = arrayOf(getString(R.string.channel_menu_epg), favOption, getString(R.string.zap_receiver))
         AlertDialog.Builder(requireContext())
             .setTitle(service.name)
             .setItems(options) { _, which ->
@@ -254,6 +260,16 @@ class ChannelsFragment : Fragment() {
                         applyBouquetFilter(viewModel.bouquets.value ?: emptyList())
                         if (viewModel.selectedBouquet.value?.ref == ChannelViewModel.FAVORITES_REF) {
                             viewModel.showFavoriteChannels(prefs.favoriteServices)
+                        }
+                    }
+                    2 -> {
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            try {
+                                repository.zap(service.ref)
+                                Toast.makeText(requireContext(), getString(R.string.zap_sent, service.name), Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                Toast.makeText(requireContext(), getString(R.string.zap_failed), Toast.LENGTH_SHORT).show()
+                            }
                         }
                     }
                 }

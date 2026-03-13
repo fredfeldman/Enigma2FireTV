@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -87,6 +88,11 @@ dependencies {
 
     // Glide for channel logos
     implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("com.github.bumptech.glide:okhttp3-integration:4.16.0")
+    kapt("com.github.bumptech.glide:compiler:4.16.0")
+
+    // WorkManager for background timer polling
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // Material Design (TV-compatible subset)
     implementation("com.google.android.material:material:1.11.0")

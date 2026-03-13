@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.model.Service
+import com.enigma2.firetv.data.model.Timer
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,6 +54,8 @@ class EpgGridView @JvmOverloads constructor(
     // ---- Data ----
     private var services: List<Service> = emptyList()
     private var epgMap: Map<String, List<EpgEvent>> = emptyMap()
+    // Each entry is Triple(serviceRef, beginMs, endMs) for active/scheduled timers
+    private var timerRanges: List<Triple<String, Long, Long>> = emptyList()
 
     /** Start of the visible time window (epoch ms, rounded to the hour) */
     var windowStartMs: Long = roundToHour(System.currentTimeMillis() - 30 * 60 * 1000L)
@@ -73,6 +76,9 @@ class EpgGridView @JvmOverloads constructor(
     }
     private val paintSelected = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.epg_selected)
+    }
+    private val paintRecording = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.epg_recording)
     }
     private val paintBorder = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.surface_dark)
@@ -123,6 +129,17 @@ class EpgGridView @JvmOverloads constructor(
         requestLayout()
     }
 
+    /**
+     * Supply active and scheduled timers so the grid can highlight matching events in red.
+     * Only timers with state < 3 (i.e. Waiting/Preparing/Recording) and justPlay == 0 are used.
+     */
+    fun setTimers(timers: List<Timer>) {
+        timerRanges = timers
+            .filter { it.state < 3 && it.justPlay == 0 }
+            .map { Triple(it.serviceRef, it.beginTimestamp * 1000L, it.endTimestamp * 1000L) }
+        invalidate()
+    }
+
     fun getSelectedEvent(): EpgEvent? {
         val sref = services.getOrNull(selectedRow)?.ref ?: return null
         return epgMap[sref]?.getOrNull(selectedCol)
@@ -157,8 +174,12 @@ class EpgGridView @JvmOverloads constructor(
 
                 // Background
                 val isSelected = rowIndex == selectedRow && colIndex == selectedCol
+                val isTimerEvent = timerRanges.any { (ref, tBegin, tEnd) ->
+                    ref == service.ref && tBegin < event.endMs && tEnd > event.beginMs
+                }
                 val bgPaint = when {
                     isSelected -> paintSelected
+                    isTimerEvent -> paintRecording
                     event.endMs < nowMs -> paintPast
                     event.beginMs <= nowMs -> paintNow
                     else -> paintFuture

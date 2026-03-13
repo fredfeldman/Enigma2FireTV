@@ -1,18 +1,25 @@
 package com.enigma2.firetv.ui.main
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.fragment.app.FragmentActivity
 import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.ViewModelProvider
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.api.ApiClient
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.ui.channels.ChannelsFragment
 import com.enigma2.firetv.ui.devices.DevicePickerFragment
+import com.enigma2.firetv.ui.player.PlayerActivity
 import com.enigma2.firetv.ui.setup.SetupFragment
 import com.enigma2.firetv.ui.viewmodel.ChannelViewModel
+import com.enigma2.firetv.worker.TimerPollingWorker
+import java.util.concurrent.TimeUnit
 
 /**
  * Single-activity host that swaps between [SetupFragment], [ChannelsFragment],
@@ -39,6 +46,23 @@ class MainActivity : FragmentActivity() {
                     password = prefs.password
                 )
                 showChannels()
+
+                // Auto-resume last channel on cold launch
+                val lastRef = prefs.lastChannelRef
+                if (prefs.autoResumeEnabled && lastRef.isNotBlank()) {
+                    startActivity(Intent(this, PlayerActivity::class.java).apply {
+                        putExtra(PlayerActivity.EXTRA_STREAM_URL, prefs.streamUrl(lastRef))
+                        putExtra(PlayerActivity.EXTRA_CHANNEL_NAME, prefs.lastChannelName)
+                        putExtra(PlayerActivity.EXTRA_SERVICE_REF, lastRef)
+                    })
+                }
+
+                // Start background timer polling for recording notifications
+                WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                    TimerPollingWorker.WORK_NAME,
+                    ExistingPeriodicWorkPolicy.KEEP,
+                    PeriodicWorkRequestBuilder<TimerPollingWorker>(15, TimeUnit.MINUTES).build()
+                )
             } else {
                 showSetup()
             }

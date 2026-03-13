@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App -->
-    <string name="app_name">Enigma2 FireTV</string>
+    <string name="app_name">E2FireTV</string>
     <string name="setup_subtitle">Connect to your Enigma2 receiver</string>
 
     <!-- Setup / Settings -->
@@ -154,5 +154,39 @@
     <!-- Dark/light theme -->
     <string name="pref_title_night_mode">Dark Theme</string>
     <string name="pref_summary_night_mode">Use dark theme (restart may be required)</string>
+
+    <!-- Recordings sort -->
+    <string name="sort_recordings">Sort</string>
+    <string name="sort_date_newest">Date — Newest First</string>
+    <string name="sort_date_oldest">Date — Oldest First</string>
+    <string name="sort_by_name">Name (A–Z)</string>
+    <string name="sort_by_channel">Channel (A–Z)</string>
+
+    <!-- Channel list -->
+    <string name="hint_channel_filter">Search channels…</string>
+    <string name="zap_receiver">Zap on receiver</string>
+    <string name="zap_sent">Tuned receiver to %s</string>
+    <string name="zap_failed">Zap failed</string>
+
+    <!-- Player improvements -->
+    <string name="btn_audio">Audio</string>
+    <string name="btn_subtitles">Subs</string>
+    <string name="btn_sleep">Sleep</string>
+    <string name="audio_track_title">Audio Track</string>
+    <string name="subtitle_track_title">Subtitles</string>
+    <string name="subtitle_off">Off</string>
+    <string name="aspect_fit">Fit</string>
+    <string name="aspect_fill">Fill</string>
+    <string name="aspect_zoom">Zoom</string>
+    <string name="sleep_timer_title">Sleep Timer</string>
+    <string name="sleep_timer_off">Off</string>
+    <string name="sleep_timer_set">Sleep in %d min</string>
+    <string name="no_audio_tracks">No audio tracks available</string>
+    <string name="no_subtitle_tracks">No subtitle tracks available</string>
+
+    <!-- Recording notifications -->
+    <string name="notif_channel_name">Recording Alerts</string>
+    <string name="notif_channel_desc">Notifies when a scheduled recording starts on your receiver</string>
+    <string name="notif_recording_started">Recording Started</string>
 
 </resources>

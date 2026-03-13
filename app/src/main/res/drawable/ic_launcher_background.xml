@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  App icon background colour.
+  Change android:color below to use a different background.
+
+  EXAMPLE COLOURS
+  ───────────────────────────────────────────────────────────
+  #FF1A1A2E  – deep navy (default)
+  #FF121212  – near-black
+  #FF0D3349  – dark teal/blue
+  #FF1B2838  – Steam-style dark blue
+  #FF2C2C2C  – dark grey
+  ───────────────────────────────────────────────────────────
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <!-- EDIT THIS COLOUR to change the icon background -->
+    <solid android:color="#FF1A1A2E" />
+</shape>

@@ -26,6 +26,7 @@ class ChannelAdapter(
 
     private val nowNextMap = mutableMapOf<String, NowNextEvent>()
     private var favoriteRefs: Set<String> = emptySet()
+    private var recordingRefs: Set<String> = emptySet()
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -35,6 +36,7 @@ class ChannelAdapter(
         val tvNowPlaying: TextView = view.findViewById(R.id.tv_now_playing)
         val pbProgress: ProgressBar = view.findViewById(R.id.pb_event_progress)
         val btnFavorite: TextView = view.findViewById(R.id.btn_favorite)
+        val tvRecBadge: TextView = view.findViewById(R.id.tv_rec_badge)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -50,31 +52,48 @@ class ChannelAdapter(
         holder.tvNumber.text = (position + 1).toString()
         holder.tvName.text = service.name
 
-        // Load picon
-        if (service.piconPath != null) {
-            Glide.with(holder.ivPicon)
-                .load(prefs.piconUrl(service.piconPath))
-                .placeholder(R.drawable.ic_channel_placeholder)
-                .error(R.drawable.ic_channel_placeholder)
-                .into(holder.ivPicon)
-        } else {
-            holder.ivPicon.setImageResource(R.drawable.ic_channel_placeholder)
-        }
+        // Picon load order:
+        // 1. ref with trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0_.png)
+        // 2. ref without trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0.png)
+        // 3. channel name (e.g. 1 CANAL SUR HD.png)
+        val piconUrl = if (service.piconPath != null) prefs.piconUrl(service.piconPath)
+                       else prefs.piconFallbackUrl(service.ref)
+        val piconUrlShort = prefs.piconFallbackUrlShort(service.ref)
+        val piconUrlName = prefs.piconFallbackUrlByName(service.name)
+        Glide.with(holder.ivPicon)
+            .load(piconUrl)
+            .placeholder(R.drawable.ic_channel_placeholder)
+            .error(
+                Glide.with(holder.ivPicon)
+                    .load(piconUrlShort)
+                    .error(
+                        Glide.with(holder.ivPicon)
+                            .load(piconUrlName)
+                            .placeholder(R.drawable.ic_channel_placeholder)
+                            .error(R.drawable.ic_channel_placeholder)
+                    )
+            )
+            .into(holder.ivPicon)
 
         // Show now/next info
         val nn = nowNextMap[service.ref]
-        if (nn?.nowEvent != null) {
-            val now = nn.nowEvent
-            val endTime = timeFmt.format(Date(now.endMs))
-            holder.tvNowPlaying.text = "${now.title}  ▸ $endTime"
+        val nowEvt = nn?.nowEvent
+        val nextEvt = nn?.nextEvent
+        if (nowEvt != null) {
+            val endTime = timeFmt.format(Date(nowEvt.endMs))
+            val nowText = "${nowEvt.title}  ▸ $endTime"
+            holder.tvNowPlaying.text = if (nextEvt != null) "$nowText  │  ${nextEvt.title}" else nowText
 
             // Calculate progress
             val currentTime = System.currentTimeMillis()
-            val total = now.endMs - now.beginMs
-            val elapsed = currentTime - now.beginMs
+            val total = nowEvt.endMs - nowEvt.beginMs
+            val elapsed = currentTime - nowEvt.beginMs
             val progress = if (total > 0) ((elapsed.toFloat() / total) * 100).toInt().coerceIn(0, 100) else 0
             holder.pbProgress.progress = progress
             holder.pbProgress.visibility = View.VISIBLE
+        } else if (nextEvt != null) {
+            holder.tvNowPlaying.text = "Next: ${nextEvt.title}"
+            holder.pbProgress.visibility = View.INVISIBLE
         } else {
             holder.tvNowPlaying.text = ""
             holder.pbProgress.visibility = View.INVISIBLE
@@ -88,6 +107,9 @@ class ChannelAdapter(
 
         // Favorite star indicator (visual only)
         holder.btnFavorite.text = if (service.ref in favoriteRefs) "★" else "☆"
+
+        // Recording-in-progress badge
+        holder.tvRecBadge.visibility = if (service.ref in recordingRefs) View.VISIBLE else View.GONE
     }
 
     fun updateNowNext(events: List<NowNextEvent>) {
@@ -98,6 +120,11 @@ class ChannelAdapter(
 
     fun updateFavorites(refs: Set<String>) {
         favoriteRefs = refs
+        notifyDataSetChanged()
+    }
+
+    fun updateRecordingRefs(refs: Set<String>) {
+        recordingRefs = refs
         notifyDataSetChanged()
     }
 

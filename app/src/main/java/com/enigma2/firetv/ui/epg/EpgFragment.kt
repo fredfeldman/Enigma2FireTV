@@ -18,12 +18,15 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.model.Service
+import com.enigma2.firetv.data.model.Timer
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
 import com.enigma2.firetv.ui.player.PlayerActivity
+import com.enigma2.firetv.ui.epg.EpgSearchFragment
 import com.enigma2.firetv.ui.viewmodel.ChannelViewModel
 import com.enigma2.firetv.ui.viewmodel.EpgViewModel
 import kotlinx.coroutines.launch
@@ -54,10 +57,11 @@ class EpgFragment : Fragment() {
     private lateinit var tvSelectedDesc: TextView
     private lateinit var eventInfoBar: LinearLayout
     private lateinit var btnRecord: Button
+    private lateinit var btnEpgSearch: TextView
 
     private var selectedEvent: EpgEvent? = null
 
-    /** Simple single-column adapter that shows channel names aligned to EPG rows. */
+    /** Pinned channel column adapter: shows picon + channel name aligned to EPG rows. */
     private inner class EpgChannelAdapter(private val services: List<Service>) :
         RecyclerView.Adapter<EpgChannelAdapter.VH>() {
 
@@ -66,26 +70,40 @@ class EpgFragment : Fragment() {
         }
 
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
-            val tv: TextView = view as TextView
+            val ivPicon: android.widget.ImageView = view.findViewById(R.id.iv_epg_picon)
+            val tvName: TextView = view.findViewById(R.id.tv_epg_channel_name)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-            val tv = TextView(parent.context).apply {
-                layoutParams = RecyclerView.LayoutParams(
-                    RecyclerView.LayoutParams.MATCH_PARENT, rowHeightPx
-                )
-                setPadding(16, 0, 16, 0)
-                gravity = android.view.Gravity.CENTER_VERTICAL
-                setTextColor(resources.getColor(R.color.text_primary, null))
-                textSize = 12f
-                maxLines = 2
-                ellipsize = android.text.TextUtils.TruncateAt.END
-            }
-            return VH(tv)
+            val v = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_epg_channel, parent, false)
+            v.layoutParams = RecyclerView.LayoutParams(
+                RecyclerView.LayoutParams.MATCH_PARENT, rowHeightPx
+            )
+            return VH(v)
         }
 
         override fun onBindViewHolder(holder: VH, position: Int) {
-            holder.tv.text = services[position].name
+            val service = services[position]
+            holder.tvName.text = service.name
+            val piconUrl = if (service.piconPath != null) prefs.piconUrl(service.piconPath)
+                           else prefs.piconFallbackUrl(service.ref)
+            val piconUrlShort = prefs.piconFallbackUrlShort(service.ref)
+            val piconUrlName = prefs.piconFallbackUrlByName(service.name)
+            Glide.with(holder.ivPicon)
+                .load(piconUrl)
+                .placeholder(R.drawable.ic_channel_placeholder)
+                .error(
+                    Glide.with(holder.ivPicon)
+                        .load(piconUrlShort)
+                        .error(
+                            Glide.with(holder.ivPicon)
+                                .load(piconUrlName)
+                                .placeholder(R.drawable.ic_channel_placeholder)
+                                .error(R.drawable.ic_channel_placeholder)
+                        )
+                )
+                .into(holder.ivPicon)
         }
 
         override fun getItemCount() = services.size
@@ -127,8 +145,15 @@ class EpgFragment : Fragment() {
         tvSelectedDesc = view.findViewById(R.id.tv_selected_desc)
         eventInfoBar = view.findViewById(R.id.event_info_bar)
         btnRecord = view.findViewById(R.id.btn_record)
+        btnEpgSearch = view.findViewById(R.id.btn_epg_search)
 
         btnRecord.setOnClickListener { selectedEvent?.let { confirmRecord(it) } }
+        btnEpgSearch.setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(R.id.main_container, EpgSearchFragment())
+                .addToBackStack(null)
+                .commit()
+        }
 
         // Sync time ruler scroll with grid scroll
         epgHScroll.setOnScrollChangeListener { _, scrollX, _, _, _ ->
@@ -175,6 +200,14 @@ class EpgFragment : Fragment() {
         // Grid
         epgGrid.setData(services, epgMap)
         updateInfoBar(epgGrid.getSelectedEvent())
+
+        // Fetch timers and highlight recorded/scheduled events in red
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val timers = Enigma2Repository().getTimers()
+                epgGrid.setTimers(timers)
+            } catch (_: Exception) {}
+        }
 
         // Sync vertical scroll between channel list and grid
         // (Both use internal scroll — wire them via touch/key events in the grid)

@@ -1,24 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  App icon foreground — 108×108 dp canvas (safe zone: 72×72 dp centred, i.e. 18dp inset).
+  Edit the colour hex values or path shapes to customise the icon.
+
+  COLOUR GUIDE
+  ─────────────────────────────────────────────────
+  #FF1A1A2E  – deep navy/dark background ring
+  #FFE94560  – red/pink accent (dish, signal lines)
+  #FFFFA500  – orange (play triangle)
+  #FFFFFFFF  – white text / highlights
+  ─────────────────────────────────────────────────
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Play triangle (orange) -->
+
+    <!--
+      GROUP: scale all artwork to 85% (100% - 15%), centred on the 108×108 canvas.
+      translateX/Y = 54 × (1 - 0.85) = 8.1  ← adjust these if you change scaleX/Y
+      To resize again, change scaleX, scaleY, and recalculate translateX/Y as: 54*(1-scale)
+    -->
+    <group
+        android:scaleX="0.85"
+        android:scaleY="0.85"
+        android:translateX="8.1"
+        android:translateY="8.1">
+
+    <!-- ═══════════════════════════════════════════
+         BACKGROUND CIRCLE
+         Change android:fillColor to change the disc colour.
+         ═══════════════════════════════════════════ -->
+    <path
+        android:fillColor="#FF1A1A2E"
+        android:pathData="M54,10 A44,44 0 1 1 53.99,10 Z" />
+
+    <!-- ═══════════════════════════════════════════
+         SATELLITE DISH BODY
+         M = start point, A = arc (rx,ry rotation large-arc-flag sweep-flag x,y)
+         Adjust the arc radii or stroke colour below.
+         ═══════════════════════════════════════════ -->
+    <!-- Outer arc -->
+    <path
+        android:pathData="M32,68 A28,28 0 0 1 76,42"
+        android:strokeColor="#FFE94560"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <!-- Mid arc -->
+    <path
+        android:pathData="M36,65 A21,21 0 0 1 71,46"
+        android:strokeColor="#FFE94560"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <!-- Inner arc -->
+    <path
+        android:pathData="M40,62 A14,14 0 0 1 66,50"
+        android:strokeColor="#FFE94560"
+        android:strokeWidth="2"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <!-- Dish stem -->
+    <path
+        android:pathData="M54,54 L62,72"
+        android:strokeColor="#FFE94560"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+    <!-- Dish base -->
+    <path
+        android:pathData="M56,72 L68,72"
+        android:strokeColor="#FFE94560"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:strokeLineCap="round" />
+
+    <!-- ═══════════════════════════════════════════
+         PLAY TRIANGLE
+         Points: left-top (36,40), left-bottom (36,68), right-centre (64,54)
+         Change android:fillColor to change the triangle colour.
+         ═══════════════════════════════════════════ -->
     <path
         android:fillColor="#FFFFA500"
-        android:pathData="M35,25 L80,54 L35,83 Z" />
-    <!-- Satellite dish arc -->
+        android:pathData="M36,40 L64,54 L36,68 Z" />
+
+    <!-- ═══════════════════════════════════════════
+         SIGNAL DOT (centre of dish focus)
+         Small filled circle at dish focal point.
+         Change android:fillColor for dot colour.
+         ═══════════════════════════════════════════ -->
     <path
-        android:pathData="M68,18 A26,26 0 0 1 94,44"
-        android:strokeColor="#FFFFA500"
-        android:strokeWidth="4"
-        android:fillColor="#00000000"
-        android:strokeLineCap="round" />
-    <path
-        android:pathData="M74,18 L80,26"
-        android:strokeColor="#FFFFA500"
-        android:strokeWidth="4"
-        android:fillColor="#00000000"
-        android:strokeLineCap="round" />
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,52 A3,3 0 1 1 53.99,52 Z" />
+
+    </group>
+
 </vector>

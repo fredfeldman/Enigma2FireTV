@@ -18,7 +18,12 @@ import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.hls.HlsMediaSource
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.common.C
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.ui.PlayerView
+import android.app.AlertDialog
+import android.widget.Toast
+import com.bumptech.glide.Glide
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
@@ -93,6 +98,18 @@ class PlayerActivity : FragmentActivity() {
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
     private var currentStreamUrl: String = ""
 
+    // Player feature controls
+    private lateinit var tvBitrateOverlay: TextView
+    private lateinit var btnAudio: TextView
+    private lateinit var btnSubtitles: TextView
+    private lateinit var btnAspect: TextView
+    private lateinit var btnSleep: TextView
+    // Aspect ratio cycling: FIT(0) → FILL(3) → ZOOM(4)
+    private val resizeModes = intArrayOf(0, 3, 4)
+    private val resizeModeLabels = arrayOf("Fit", "Fill", "Zoom")
+    private var resizeModeIndex = 0
+    private var sleepTimerRunnable: Runnable? = null
+
     private val hideOsdRunnable = Runnable { hideOsd() }
     private val clearSeekHintRunnable = Runnable { tvSeekHint.text = "" }
     private val clearLiveSeekHintRunnable = Runnable { tvLiveSeekHint.visibility = View.GONE }
@@ -135,6 +152,15 @@ class PlayerActivity : FragmentActivity() {
         tvPauseStatus = findViewById(R.id.tv_pause_status)
         tvLiveSeekHint = findViewById(R.id.tv_live_seek_hint)
         tvPlaylistInfo = findViewById(R.id.tv_playlist_info)
+        tvBitrateOverlay = findViewById(R.id.tv_bitrate_overlay)
+        btnAudio = findViewById(R.id.btn_audio)
+        btnSubtitles = findViewById(R.id.btn_subtitles)
+        btnAspect = findViewById(R.id.btn_aspect)
+        btnSleep = findViewById(R.id.btn_sleep)
+        btnAudio.setOnClickListener { showAudioTrackDialog() }
+        btnSubtitles.setOnClickListener { showSubtitleDialog() }
+        btnAspect.setOnClickListener { cycleAspectRatio() }
+        btnSleep.setOnClickListener { showSleepTimerDialog() }
 
         // Read playlist extras
         playlistUrls = intent.getStringArrayListExtra(EXTRA_PLAYLIST_URLS) ?: emptyList()
@@ -152,6 +178,25 @@ class PlayerActivity : FragmentActivity() {
         val serviceRef = intent.getStringExtra(EXTRA_SERVICE_REF) ?: ""
 
         tvChannelName.text = channelName
+
+        // Load picon using same three-format fallback chain as channel list
+        if (serviceRef.isNotBlank()) {
+            val piconUrl = prefs.piconFallbackUrl(serviceRef)
+            val piconUrlShort = prefs.piconFallbackUrlShort(serviceRef)
+            val piconUrlName = prefs.piconFallbackUrlByName(channelName)
+            Glide.with(this)
+                .load(piconUrl)
+                .error(
+                    Glide.with(this)
+                        .load(piconUrlShort)
+                        .error(
+                            Glide.with(this)
+                                .load(piconUrlName)
+                                .error(R.drawable.ic_channel_placeholder)
+                        )
+                )
+                .into(ivChannelLogo)
+        }
 
         initPlayer(streamUrl)
 
@@ -370,6 +415,7 @@ class PlayerActivity : FragmentActivity() {
             handler.postDelayed(hideOsdRunnable, OSD_HIDE_DELAY_MS)
         }
         // Show seek bar for seekable (recorded) content
+        updateBitrateOverlay()
         val exo = player ?: return
         val dur = exo.duration
         if (dur > 0 && !exo.isCurrentMediaItemLive) {
@@ -382,6 +428,7 @@ class PlayerActivity : FragmentActivity() {
 
     private fun hideOsd() {
         osdOverlay.visibility = View.GONE
+        tvBitrateOverlay.visibility = View.GONE
         handler.removeCallbacks(seekBarUpdateRunnable)
     }
 
@@ -519,8 +566,179 @@ class PlayerActivity : FragmentActivity() {
                     true
                 }
             }
+            KeyEvent.KEYCODE_MENU -> {
+                showPlayerOptionsMenu()
+                true
+            }
             else -> super.onKeyDown(keyCode, event)
         }
+    }
+
+    // -------------------------------------------------------------------------
+    // Player options menu (Menu button on remote)
+    // -------------------------------------------------------------------------
+
+    private fun showPlayerOptionsMenu() {
+        val options = arrayOf(
+            "Audio Track",
+            "Subtitles",
+            "Aspect Ratio  [${resizeModeLabels[resizeModeIndex]}]",
+            "Sleep Timer"
+        )
+        AlertDialog.Builder(this)
+            .setTitle("Player Options")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> showAudioTrackDialog()
+                    1 -> showSubtitleDialog()
+                    2 -> cycleAspectRatio()
+                    3 -> showSleepTimerDialog()
+                }
+            }
+            .show()
+    }
+
+    // -------------------------------------------------------------------------
+    // Audio track selection
+    // -------------------------------------------------------------------------
+
+    private fun showAudioTrackDialog() {
+        val exo = player ?: return
+        val audioGroups = exo.currentTracks.groups.filter { it.type == C.TRACK_TYPE_AUDIO }
+        if (audioGroups.isEmpty()) {
+            Toast.makeText(this, getString(R.string.no_audio_tracks), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val flatPairs = audioGroups.flatMap { g -> (0 until g.length).map { i -> Pair(g, i) } }
+        val names = flatPairs.map { (g, i) ->
+            val fmt = g.getTrackFormat(i)
+            buildString {
+                fmt.language?.let { append(Locale(it).displayLanguage) } ?: append("Track ${i + 1}")
+                fmt.label?.let { append(" ($it)") }
+                if (fmt.channelCount > 0) append(" ${fmt.channelCount}ch")
+                if (g.isTrackSelected(i)) append(" ✓")
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.audio_track_title))
+            .setItems(names.toTypedArray()) { _, which ->
+                val (group, idx) = flatPairs[which]
+                exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
+                    .setOverrideForType(TrackSelectionOverride(group.mediaTrackGroup, idx))
+                    .build()
+            }
+            .show()
+    }
+
+    // -------------------------------------------------------------------------
+    // Subtitle selection
+    // -------------------------------------------------------------------------
+
+    private fun showSubtitleDialog() {
+        val exo = player ?: return
+        val textGroups = exo.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }
+        if (textGroups.isEmpty()) {
+            Toast.makeText(this, getString(R.string.no_subtitle_tracks), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val names = mutableListOf(getString(R.string.subtitle_off))
+        val pairs = mutableListOf<Pair<androidx.media3.common.Tracks.Group, Int>?>(null)
+        textGroups.forEach { g ->
+            (0 until g.length).forEach { i ->
+                val fmt = g.getTrackFormat(i)
+                names.add(buildString {
+                    fmt.language?.let { append(Locale(it).displayLanguage) } ?: append("Track ${i + 1}")
+                    fmt.label?.let { append(" ($it)") }
+                    if (g.isTrackSelected(i)) append(" ✓")
+                })
+                pairs.add(Pair(g, i))
+            }
+        }
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.subtitle_track_title))
+            .setItems(names.toTypedArray()) { _, which ->
+                if (which == 0) {
+                    exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+                        .build()
+                } else {
+                    val (g, i) = pairs[which]!!
+                    exo.trackSelectionParameters = exo.trackSelectionParameters.buildUpon()
+                        .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                        .setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, i))
+                        .build()
+                }
+            }
+            .show()
+    }
+
+    // -------------------------------------------------------------------------
+    // Aspect ratio toggle
+    // -------------------------------------------------------------------------
+
+    private fun cycleAspectRatio() {
+        resizeModeIndex = (resizeModeIndex + 1) % resizeModes.size
+        playerView.resizeMode = resizeModes[resizeModeIndex]
+        btnAspect.text = resizeModeLabels[resizeModeIndex]
+        Toast.makeText(this, resizeModeLabels[resizeModeIndex], Toast.LENGTH_SHORT).show()
+    }
+
+    // -------------------------------------------------------------------------
+    // Sleep timer
+    // -------------------------------------------------------------------------
+
+    private fun showSleepTimerDialog() {
+        val mins = intArrayOf(0, 15, 30, 60, 90)
+        val opts = arrayOf(
+            getString(R.string.sleep_timer_off),
+            "15 min", "30 min", "60 min", "90 min"
+        )
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.sleep_timer_title))
+            .setItems(opts) { _, which ->
+                sleepTimerRunnable?.let { handler.removeCallbacks(it) }
+                if (mins[which] > 0) {
+                    val r = Runnable { finish() }.also { sleepTimerRunnable = it }
+                    handler.postDelayed(r, mins[which] * 60_000L)
+                    btnSleep.text = "${mins[which]}m"
+                    Toast.makeText(this, getString(R.string.sleep_timer_set, mins[which]), Toast.LENGTH_SHORT).show()
+                } else {
+                    sleepTimerRunnable = null
+                    btnSleep.text = getString(R.string.btn_sleep)
+                }
+            }
+            .show()
+    }
+
+    // -------------------------------------------------------------------------
+    // Bitrate / resolution overlay
+    // -------------------------------------------------------------------------
+
+    private fun updateBitrateOverlay() {
+        val vf = player?.videoFormat
+        val af = player?.audioFormat
+        if (vf == null && af == null) {
+            tvBitrateOverlay.visibility = View.GONE
+            return
+        }
+        tvBitrateOverlay.text = buildString {
+            vf?.let {
+                if (it.width > 0 && it.height > 0) append("${it.width}\u00d7${it.height}")
+                if (it.frameRate > 0) append("  %.0ffps".format(it.frameRate))
+                val br = it.peakBitrate.takeIf { b -> b > 0 } ?: it.averageBitrate
+                if (br > 0) append("  ${br / 1000}kbps")
+                append("\n")
+            }
+            af?.let {
+                val codec = it.codecs?.substringBefore('.')
+                    ?: it.sampleMimeType?.substringAfterLast('/')
+                    ?: "audio"
+                append(codec.uppercase())
+                if (it.channelCount > 0) append(" ${it.channelCount}ch")
+                if (it.sampleRate > 0) append("  ${it.sampleRate / 1000}kHz")
+            }
+        }.trim()
+        tvBitrateOverlay.visibility = View.VISIBLE
     }
 
     // -------------------------------------------------------------------------

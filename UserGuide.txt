@@ -1,6 +1,6 @@
 # Enigma2 FireTV – User Guide
 
-> **Version 1.02**
+> **Version 1.03**
 
 ## Table of Contents
 1. [First-Time Setup](#1-first-time-setup)
@@ -23,7 +23,7 @@ When you launch the app for the first time you will be taken to the **Setup** sc
 | Field | Description |
 |---|---|
 | Device Name | A friendly label (e.g. "Living Room Vu+") |
-| Host / IP Address | Local IP of your Enigma2 receiver (e.g. `192.168.1.100`) |
+| Host / IP Address | Local IP of your Enigma2 receiver (e.g. `192.168.50.8`) |
 | Port | HTTP port of OpenWebif — default is **80** |
 | HTTPS | Enable only if your receiver is configured for HTTPS |
 | Username / Password | Leave blank if your receiver has no login |

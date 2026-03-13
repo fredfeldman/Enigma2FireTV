@@ -34,6 +34,10 @@ class ChannelViewModel : ViewModel() {
     private val _nowNext = MutableLiveData<List<NowNextEvent>>()
     val nowNext: LiveData<List<NowNextEvent>> = _nowNext
 
+    // ---- Recording-in-progress indicators ----
+    private val _recordingServiceRefs = MutableLiveData<Set<String>>(emptySet())
+    val recordingServiceRefs: LiveData<Set<String>> = _recordingServiceRefs
+
     // ---- Loading / error ----
     private val _isLoading = MutableLiveData<Boolean>(false)
     val isLoading: LiveData<Boolean> = _isLoading
@@ -65,6 +69,7 @@ class ChannelViewModel : ViewModel() {
         if (bouquet.ref != FAVORITES_REF) {
             loadChannels(bouquet.ref)
             loadNowNext(bouquet.ref)
+            loadRecordingTimers()
         }
         // For FAVORITES_REF: ChannelsFragment observes selectedBouquet and calls showFavoriteChannels()
     }
@@ -85,6 +90,18 @@ class ChannelViewModel : ViewModel() {
         viewModelScope.launch {
             val nn = repository.getNowNext(bouquetRef)
             _nowNext.value = nn
+        }
+    }
+
+    fun loadRecordingTimers() {
+        viewModelScope.launch {
+            try {
+                val timers = repository.getTimers()
+                _recordingServiceRefs.value = timers
+                    .filter { it.state == 2 && it.justPlay == 0 }
+                    .map { it.serviceRef }
+                    .toSet()
+            } catch (_: Exception) {}
         }
     }
 

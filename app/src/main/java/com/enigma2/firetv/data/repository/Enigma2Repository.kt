@@ -173,4 +173,15 @@ class Enigma2Repository {
             null
         }
     }
+
+    /**
+     * Zaps (tunes) the receiver to the given service reference.
+     */
+    suspend fun zap(serviceRef: String) = withContext(Dispatchers.IO) {
+        try {
+            ApiClient.service.zapToService(serviceRef)
+        } catch (e: Exception) {
+            android.util.Log.e("Enigma2Repo", "zap failed", e)
+        }
+    }
 }

@@ -83,6 +83,14 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 true
             }
         }
+
+        findPreference<SwitchPreferenceCompat>("auto_resume_channel")?.apply {
+            isChecked = prefs.autoResumeEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                prefs.autoResumeEnabled = newValue as Boolean
+                true
+            }
+        }
     }
 
     private fun reInitApi(prefs: ReceiverPreferences) {
