@@ -188,4 +188,98 @@ interface OpenWebifService {
      */
     @GET("api/about")
     suspend fun getAbout(): Map<String, Any>
+
+    // -------------------------------------------------------------------------
+    // BouquetEditor plugin (XML responses; parsed by BouquetEditorXml)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Lists bouquets via the BouquetEditor plugin (`/bouqueteditor/api/getservices`).
+     * With no `sRef`, the plugin returns the TV bouquet root; pass the radio root to
+     * list radio bouquets. Same JSON shape as the core OpenWebif `getservices`.
+     * Also serves as the capability probe — a 404 means the plugin is not installed.
+     */
+    @GET("bouqueteditor/api/getservices")
+    suspend fun getBouquetEditorBouquets(
+        @Query("sRef") sRef: String = ""
+    ): ServicesResponse
+
+    /**
+     * Creates a new empty user bouquet.
+     * @param mode 0 = TV, 1 = Radio (Enigma2 `MODE_TV` / `MODE_RADIO`).
+     *
+     * Mutation endpoints use `/bouqueteditor/web/...` which returns the
+     * `<e2simplexmlresult>` shape we already parse for AutoTimer. The `/api/`
+     * sibling returns `{"Result":[bool,"msg"]}` JSON instead.
+     */
+    @GET("bouqueteditor/web/addbouquet")
+    suspend fun addBouquet(
+        @Query("name") name: String,
+        @Query("mode") mode: Int = 0
+    ): ResponseBody
+
+    /**
+     * Renames a bouquet. The BouquetEditor plugin doesn't expose a dedicated
+     * `renamebouquet` endpoint — instead `renameservice` accepts a bouquet ref
+     * and uses `setListName` when the ref points at a bouquet (mustDescent flag).
+     */
+    @GET("bouqueteditor/web/renameservice")
+    suspend fun renameBouquet(
+        @Query("sRef") sRef: String,
+        @Query("newName") newName: String,
+        @Query("mode") mode: Int = 0
+    ): ResponseBody
+
+    /** Deletes a user bouquet by reference. */
+    @GET("bouqueteditor/web/removebouquet")
+    suspend fun removeBouquet(
+        @Query("sBouquetRef") sBouquetRef: String,
+        @Query("mode") mode: Int = 0
+    ): ResponseBody
+
+    /** Adds a service to a user bouquet (appended at the end). */
+    @GET("bouqueteditor/web/addservicetobouquet")
+    suspend fun addServiceToBouquet(
+        @Query("sBouquetRef") sBouquetRef: String,
+        @Query("sRef") sRef: String,
+        @Query("Name") name: String
+    ): ResponseBody
+
+    /** Removes a service from a user bouquet. */
+    @GET("bouqueteditor/web/removeservice")
+    suspend fun removeServiceFromBouquet(
+        @Query("sBouquetRef") sBouquetRef: String,
+        @Query("sRef") sRef: String
+    ): ResponseBody
+
+    /** Moves a service to a new zero-based [position] inside a user bouquet. */
+    @GET("bouqueteditor/web/moveservice")
+    suspend fun moveServiceInBouquet(
+        @Query("sBouquetRef") sBouquetRef: String,
+        @Query("sRef") sRef: String,
+        @Query("position") position: Int
+    ): ResponseBody
+
+    // ---- Generic file access (OpenWebif FileController) -----------------
+    // Used by the EPGImport viewer to enumerate `/etc/epgimport/*.sources.xml`
+    // and download their contents. Responses are JSON for `?dir=` and raw
+    // bytes for `?file=&action=download`.
+
+    /**
+     * Lists files in [dir] matching [pattern]. Returns
+     * `{ "result": true|false, "dirs": [...], "files": [...] }`.
+     */
+    @GET("file")
+    suspend fun listFiles(
+        @Query("dir") dir: String,
+        @Query("pattern") pattern: String = "*"
+    ): com.enigma2.firetv.data.model.FileListResponse
+
+    /** Downloads the raw contents of [file]. */
+    @Streaming
+    @GET("file")
+    suspend fun downloadFile(
+        @Query("file") file: String,
+        @Query("action") action: String = "download"
+    ): ResponseBody
 }

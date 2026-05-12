@@ -60,9 +60,19 @@
     <PreferenceCategory android:title="@string/pref_category_bouquets">
 
         <Preference
+            android:key="manage_bouquets"
+            android:title="@string/pref_title_edit_bouquets"
+            android:summary="@string/pref_summary_edit_bouquets" />
+
+        <Preference
             android:key="manage_hidden_bouquets"
             android:title="@string/pref_title_hidden_bouquets"
             android:summary="@string/pref_summary_hidden_bouquets" />
+
+        <Preference
+            android:key="manage_epgimport"
+            android:title="@string/pref_title_epgimport"
+            android:summary="@string/pref_summary_epgimport" />
 
     </PreferenceCategory>
 

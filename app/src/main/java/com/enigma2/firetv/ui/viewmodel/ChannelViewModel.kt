@@ -19,7 +19,7 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
         const val FAVORITES_REF = "__favorites__"
     }
 
-    private val repository = Enigma2Repository()
+    private val repository = Enigma2Repository(app)
 
     // ---- Bouquets ----
     private val _bouquets = MutableLiveData<List<Bouquet>>()
@@ -125,10 +125,36 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Call before switching to a different device so stale data is not shown. */
     fun resetForNewDevice() {
+        clearChannelCache()
+    }
+
+    /**
+     * Clears all in-memory channel/bouquet state. Use after a server-side
+     * bouquet edit so the next [loadBouquets] call refreshes from the box.
+     */
+    fun clearChannelCache() {
         _bouquets.value = emptyList()
         _channels.value = emptyList()
         _selectedBouquet.value = null
         _nowNext.value = emptyList()
         _error.value = null
+        _channelsDirty.value = false
+    }
+
+    // ---- Channels-dirty flag ----
+    // Set when something outside the main screen edited the bouquet/channel
+    // list on the receiver. ChannelsFragment observes this in onResume and
+    // forces a full reload when true.
+    private val _channelsDirty = MutableLiveData(false)
+    val channelsDirty: LiveData<Boolean> = _channelsDirty
+
+    /** Mark the channel/bouquet data stale so the main screen reloads on resume. */
+    fun markChannelsDirty() {
+        _channelsDirty.value = true
+    }
+
+    /** Called by the main screen after it has acted on the dirty flag. */
+    fun consumeChannelsDirty() {
+        _channelsDirty.value = false
     }
 }

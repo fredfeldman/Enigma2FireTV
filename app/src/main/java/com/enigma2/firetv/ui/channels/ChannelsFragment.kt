@@ -136,8 +136,15 @@ class ChannelsFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Re-apply filter in case hidden bouquets changed while in Settings
-        applyBouquetFilter(viewModel.bouquets.value ?: emptyList())
+        // If the Bouquet Editor mutated anything, force a full reload so picons,
+        // names, ordering and bouquet membership all reflect the receiver again.
+        if (com.enigma2.firetv.ui.bouqueteditor.BouquetEditorEvents.consumeDirty()) {
+            viewModel.clearChannelCache()
+            viewModel.loadBouquets()
+        } else {
+            // Re-apply filter in case hidden bouquets changed while in Settings
+            applyBouquetFilter(viewModel.bouquets.value ?: emptyList())
+        }
         // Sync star state in adapter
         channelAdapter.updateFavorites(prefs.favoriteServiceRefs)
     }

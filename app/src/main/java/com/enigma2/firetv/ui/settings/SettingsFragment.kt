@@ -91,6 +91,18 @@ class SettingsFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("manage_bouquets")?.setOnPreferenceClickListener {
+            startActivity(Intent(requireContext(),
+                com.enigma2.firetv.ui.bouqueteditor.BouquetEditorActivity::class.java))
+            true
+        }
+
+        findPreference<Preference>("manage_epgimport")?.setOnPreferenceClickListener {
+            startActivity(Intent(requireContext(),
+                com.enigma2.firetv.ui.epgimport.EpgImportActivity::class.java))
+            true
+        }
+
         findPreference<Preference>("box_info")?.setOnPreferenceClickListener {
             showBoxInfo()
             true

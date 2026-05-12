@@ -180,6 +180,57 @@
     <string name="autotimer_scan_started">Scanning EPG…</string>
     <string name="autotimer_scan_done">Scan complete. New timers (if any) are scheduled.</string>
 
+    <!-- Bouquet Editor -->
+    <string name="pref_title_edit_bouquets">Edit bouquets</string>
+    <string name="pref_summary_edit_bouquets">Reorder, rename, add/remove channels…</string>
+    <string name="bouquet_editor_title">Bouquet Editor</string>
+    <string name="bouquet_editor_new">+ New</string>
+    <string name="bouquet_editor_edit">Edit</string>
+    <string name="bouquet_editor_rename">Rename</string>
+    <string name="bouquet_editor_empty">No bouquets to show.</string>
+    <string name="bouquet_editor_subtitle_user">User bouquet · %1$d channels</string>
+    <string name="bouquet_editor_subtitle_provider">Provider bouquet · %1$d channels</string>
+    <string name="bouquet_editor_banner_server">Editing on receiver — changes apply to the box and all clients.</string>
+    <string name="bouquet_editor_banner_local">Local-only mode. Install the BouquetEditor plugin on your receiver to push changes to the box. Reorder and remove still work locally for this device.</string>
+    <string name="bouquet_editor_local_disabled">This action requires the BouquetEditor plugin on the receiver.</string>
+    <string name="bouquet_editor_provider_readonly">Provider bouquets are read-only on the receiver.</string>
+    <string name="bouquet_editor_op_failed">Receiver error: %1$s</string>
+    <string name="bouquet_editor_op_ok">Saved.</string>
+
+    <string name="bouquet_new_title">New bouquet</string>
+    <string name="bouquet_new_name">Bouquet name</string>
+    <string name="bouquet_rename_title">Rename bouquet</string>
+    <string name="bouquet_delete_title">Delete bouquet</string>
+    <string name="bouquet_delete_message">Delete \"%1$s\"? Local edits for this bouquet will also be cleared.</string>
+
+    <string name="bouquet_edit_add_channel">+ Add channel</string>
+    <string name="bouquet_edit_empty">This bouquet has no channels.\nUse + Add channel to copy one in from another bouquet.</string>
+    <string name="bouquet_edit_remove_local">Remove from this device only?</string>
+    <string name="bouquet_edit_overrides_cleared">Local edits for \"%1$s\" cleared.</string>
+
+    <string name="bouquet_picker_title">Pick a channel to add</string>
+    <string name="bouquet_picker_search_hint">Filter channels…</string>
+    <string name="bouquet_picker_already_in">Already in this bouquet.</string>
+
+    <string name="bouquet_local_conflict_title">Local edits exist</string>
+    <string name="bouquet_local_conflict_message">You have local-only edits for \"%1$s\" stored on this device. The receiver supports server-side editing — what should happen to those local edits?</string>
+    <string name="bouquet_local_conflict_discard">Discard local edits</string>
+    <string name="bouquet_local_conflict_keep">Keep as a local layer</string>
+    <string name="bouquet_local_conflict_apply">Apply them to receiver</string>
+
+    <!-- EPGImport -->
+    <string name="pref_title_epgimport">EPGImport sources</string>
+    <string name="pref_summary_epgimport">View configured EPGImport `*.sources.xml` files</string>
+    <string name="epgimport_title">EPGImport</string>
+    <string name="epgimport_subtitle">Read-only view of `/etc/epgimport/*.sources.xml` on the receiver. Use the EPGImport plugin on the box to enable/disable sources or trigger an import.</string>
+    <string name="epgimport_empty">No `.sources.xml` files found in `/etc/epgimport/`.\nIs the EPGImport plugin installed?</string>
+    <string name="epgimport_detail_empty">This file contains no sources.</string>
+    <string name="epgimport_no_description">(no description)</string>
+    <string name="epgimport_type_label">Type: %1$s</string>
+    <string name="epgimport_channels_label">Channels: %1$s</string>
+    <string name="epgimport_mirror_count">Mirrors: %1$d</string>
+    <string name="back">Back</string>
+
     <!-- EPG Search -->
     <string name="btn_epg_search">Search EPG</string>
     <string name="epg_search_title">EPG Search</string>

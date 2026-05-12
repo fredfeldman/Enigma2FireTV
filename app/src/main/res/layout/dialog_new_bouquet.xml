@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/bouquet_new_name"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp" />
+
+    <EditText
+        android:id="@+id/et_new_bouquet_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:inputType="text"
+        android:maxLines="1" />
+
+    <RadioGroup
+        android:id="@+id/rg_new_bouquet_mode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rb_mode_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:checked="true"
+            android:text="TV"
+            android:textColor="@android:color/white" />
+
+        <RadioButton
+            android:id="@+id/rb_mode_radio"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Radio"
+            android:textColor="@android:color/white" />
+    </RadioGroup>
+</LinearLayout>

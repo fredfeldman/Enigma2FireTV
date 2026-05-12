@@ -2,6 +2,15 @@ package com.enigma2.firetv.data.model
 
 import com.google.gson.annotations.SerializedName
 
+// ---------- File controller (`/file?dir=...`) ----------
+
+/** Response shape for OpenWebif's `FileController` directory listing. */
+data class FileListResponse(
+    @SerializedName("result") val result: Boolean,
+    @SerializedName("dirs") val dirs: List<String>?,
+    @SerializedName("files") val files: List<String>?
+)
+
 // ---------- Bouquet / Service list ----------
 
 data class ServicesResponse(

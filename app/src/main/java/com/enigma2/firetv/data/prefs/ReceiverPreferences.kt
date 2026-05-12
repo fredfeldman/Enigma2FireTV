@@ -145,6 +145,47 @@ class ReceiverPreferences(context: Context) {
         get() = prefs.getStringSet(KEY_HIDDEN_BOUQUETS, emptySet()) ?: emptySet()
         set(value) = prefs.edit { putStringSet(KEY_HIDDEN_BOUQUETS, value) }
 
+    // ── Bouquet local overrides ───────────────────────────────────────────
+    // Per-device (active-device-scoped via the legacy keys; this is a single
+    // shared map per app install, intentionally simple — most users only have
+    // one or two boxes). Each entry stores the desired channel order and the
+    // list of removed channels for one bouquet ref.
+
+    /** A user's local override for a single bouquet. */
+    data class BouquetOverride(
+        val order: List<String> = emptyList(),
+        val removed: List<String> = emptyList()
+    ) {
+        fun isEmpty() = order.isEmpty() && removed.isEmpty()
+    }
+
+    /** Returns the override map: bouquetRef → [BouquetOverride]. Never null. */
+    fun bouquetOverrides(): Map<String, BouquetOverride> {
+        val json = prefs.getString(KEY_BOUQUET_OVERRIDES, null) ?: return emptyMap()
+        return try {
+            val type = object : TypeToken<Map<String, BouquetOverride>>() {}.type
+            gson.fromJson<Map<String, BouquetOverride>>(json, type) ?: emptyMap()
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun getBouquetOverride(bouquetRef: String): BouquetOverride? =
+        bouquetOverrides()[bouquetRef]
+
+    fun setBouquetOverride(bouquetRef: String, override: BouquetOverride) {
+        val map = bouquetOverrides().toMutableMap()
+        if (override.isEmpty()) map.remove(bouquetRef) else map[bouquetRef] = override
+        prefs.edit { putString(KEY_BOUQUET_OVERRIDES, gson.toJson(map)) }
+    }
+
+    fun clearBouquetOverride(bouquetRef: String) {
+        val map = bouquetOverrides().toMutableMap()
+        if (map.remove(bouquetRef) != null) {
+            prefs.edit { putString(KEY_BOUQUET_OVERRIDES, gson.toJson(map)) }
+        }
+    }
+
     // ── Favorites ─────────────────────────────────────────────────────────
 
     /** Returns all favorite services in insertion order. */
@@ -281,6 +322,7 @@ class ReceiverPreferences(context: Context) {
         private const val KEY_AUTO_RESUME = "auto_resume_channel"
         private const val KEY_RECORDINGS_SORT = "recordings_sort_order"
         private const val KEY_ZAP_ON_CHANGE = "zap_on_channel_change"
+        private const val KEY_BOUQUET_OVERRIDES = "bouquet_overrides_json"
     }
 
     // ── Last played channel (auto-resume) ────────────────────────────────

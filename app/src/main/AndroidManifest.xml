@@ -56,5 +56,17 @@
             android:exported="false"
             android:theme="@style/Theme.Enigma2FireTV.Settings" />
 
+        <!-- Bouquet editor (launched from Settings) -->
+        <activity
+            android:name=".ui.bouqueteditor.BouquetEditorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Enigma2FireTV.Settings" />
+
+        <!-- EPGImport sources viewer (launched from Settings) -->
+        <activity
+            android:name=".ui.epgimport.EpgImportActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Enigma2FireTV.Settings" />
+
     </application>
 </manifest>
