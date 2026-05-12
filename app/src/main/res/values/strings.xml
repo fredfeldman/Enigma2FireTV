@@ -47,6 +47,10 @@
     <!-- Recordings -->
     <string name="recordings">Recordings</string>
     <string name="no_recordings">No recordings found on receiver</string>
+    <string name="recording_duration_label">Duration: %s</string>
+    <string name="recording_size_gb">%.1f GB</string>
+    <string name="recording_size_mb">%d MB</string>
+    <string name="timer_duration_minutes">(%d min)</string>
     <string name="recording_detail_hint">Select a recording to view details</string>
     <string name="recording_delete_confirm">Delete this recording?</string>
 
@@ -55,8 +59,36 @@
     <string name="pref_summary_host">IP address or hostname</string>
     <string name="pref_title_port">HTTP port</string>
     <string name="pref_title_https">Use HTTPS</string>
+    <string name="pref_summary_https">Connect to OpenWebif over a secure (TLS) connection.</string>
     <string name="pref_title_username">Username</string>
     <string name="pref_title_password">Password</string>
+    <string name="pref_summary_username_set">Set</string>
+    <string name="pref_summary_username_none">Not set (anonymous)</string>
+    <string name="pref_summary_password_set">Saved</string>
+    <string name="pref_summary_password_none">Not set</string>
+    <string name="pref_category_connection">Receiver Connection</string>
+    <string name="pref_category_auth">Authentication</string>
+    <string name="pref_category_appearance">Appearance</string>
+    <string name="pref_category_playback">Playback</string>
+    <string name="pref_category_about">About</string>
+    <string name="pref_category_receiver">Receiver</string>
+    <string name="pref_title_box_info">Box info</string>
+    <string name="pref_summary_box_info">Show hardware, firmware, tuners and disks reported by the receiver.</string>
+    <string name="box_info_title">Receiver info</string>
+    <string name="box_info_loading">Querying receiver…</string>
+    <string name="box_info_unavailable">Could not read receiver info. Check the connection and try again.</string>
+    <string name="box_info_close">Close</string>
+    <string name="pref_title_auto_resume">Auto-tune last channel</string>
+    <string name="pref_summary_auto_resume">Automatically resume the last watched channel on launch.</string>
+    <string name="pref_title_zap_on_change">Tune receiver to channel</string>
+    <string name="pref_summary_zap_on_change">When you pick a channel in the app, also switch the Enigma2 receiver to it. Turn off to keep the receiver on whatever it was playing.</string>    <string name="pref_title_test_connection">Test connection</string>
+    <string name="pref_summary_test_connection">Verify the receiver is reachable with the current settings.</string>
+    <string name="pref_title_app_version">App version</string>
+    <string name="pref_summary_endpoint">%s</string>
+    <string name="connection_test_running">Testing connection…</string>
+    <string name="connection_test_ok">Connected. Found %d bouquets.</string>
+    <string name="connection_test_fail">Could not reach receiver: %s</string>
+    <string name="connection_test_offline">Device is offline. Connect to Wi-Fi or Ethernet first.</string>
     <string name="pref_category_bouquets">Bouquets</string>
     <string name="pref_title_hidden_bouquets">Hidden Bouquets</string>
     <string name="pref_summary_hidden_bouquets">Choose which bouquets to hide from the channel list</string>
@@ -70,7 +102,7 @@
     <string name="playlist_new_title">New Playlist</string>
     <string name="playlist_name_hint">Playlist name</string>
     <string name="playlist_empty_hint">No playlists yet. Create one to get started.</string>
-    <string name="playlist_detail_hint">Tap to play from this recording · ▲▼ to reorder · ✕ to remove</string>
+    <string name="playlist_detail_hint">Tap to play · long-press &amp; drag to reorder · ▲▼ or ✕ also available</string>
     <string name="playlist_detail_empty">This playlist is empty. Long-press a recording to add it.</string>
     <string name="playlist_add_to">Add to Playlist</string>
     <string name="playlist_none_yet">No playlists yet. Create one?</string>
@@ -112,11 +144,41 @@
     <string name="btn_timers">Timers</string>
     <string name="timers">Timers</string>
     <string name="refresh">Refresh</string>
-    <string name="no_timers">No timers scheduled on receiver</string>
+    <string name="no_timers">No timers scheduled.\nOpen the EPG and press Record to schedule one.</string>
     <string name="timer_delete_title">Delete Timer</string>
     <string name="timer_delete_message">Delete timer for \"%s\"?</string>
     <string name="timer_deleted_ok">Timer deleted: %s</string>
     <string name="timer_deleted_fail">Failed to delete timer: %s</string>
+    <string name="timer_state_waiting">Waiting</string>
+    <string name="timer_state_preparing">Preparing</string>
+    <string name="timer_state_recording">Recording</string>
+    <string name="timer_state_done">Done</string>
+    <string name="timer_state_failed">Failed</string>
+    <string name="timer_state_unknown">Unknown</string>
+
+    <!-- AutoTimer -->
+    <string name="btn_autotimer">AutoTimers</string>
+    <string name="autotimer_title">AutoTimers</string>
+    <string name="autotimer_add">+ Add</string>
+    <string name="autotimer_scan">Scan now</string>
+    <string name="autotimer_empty">No AutoTimer rules.\nAdd one to record every show whose title contains a phrase.</string>
+    <string name="autotimer_enable">Enable</string>
+    <string name="autotimer_disable">Disable</string>
+    <string name="autotimer_add_title">Add AutoTimer</string>
+    <string name="autotimer_edit_title">Edit AutoTimer</string>
+    <string name="autotimer_field_name">Name</string>
+    <string name="autotimer_field_match">Match (text in title)</string>
+    <string name="autotimer_field_enabled">Enabled</string>
+    <string name="autotimer_field_after">After (HH:MM)</string>
+    <string name="autotimer_field_before">Before (HH:MM)</string>
+    <string name="autotimer_field_help">Time fields are optional. Leave both blank to match at any hour.</string>
+    <string name="autotimer_match_required">Please enter the text the title must contain.</string>
+    <string name="autotimer_saved">AutoTimer saved.</string>
+    <string name="autotimer_save_failed">AutoTimer error: %s</string>
+    <string name="autotimer_delete_title">Delete AutoTimer</string>
+    <string name="autotimer_delete_message">Delete AutoTimer rule \"%s\"?</string>
+    <string name="autotimer_scan_started">Scanning EPG…</string>
+    <string name="autotimer_scan_done">Scan complete. New timers (if any) are scheduled.</string>
 
     <!-- EPG Search -->
     <string name="btn_epg_search">Search EPG</string>
@@ -188,5 +250,91 @@
     <string name="notif_channel_name">Recording Alerts</string>
     <string name="notif_channel_desc">Notifies when a scheduled recording starts on your receiver</string>
     <string name="notif_recording_started">Recording Started</string>
+
+    <!-- Player options menu -->
+    <string name="player_options_title">Player Options</string>
+    <string name="player_options_aspect">Aspect Ratio  [%s]</string>
+
+    <!-- Player OSD details -->
+    <string name="duration_label">Duration: %s</string>
+    <string name="seek_delta_forward">+%ds</string>
+    <string name="seek_delta_backward">%ds</string>
+    <string name="live_seek_unavailable">Live — seeking limited to buffered content</string>
+
+    <!-- Sleep timer presets -->
+    <string name="sleep_timer_minutes">%d min</string>
+    <string name="sleep_timer_btn_active">%dm</string>
+
+    <!-- Channel list -->
+    <string name="channel_filter_no_results">No channels match your filter</string>
+    <string name="channel_filter_clear">Clear filter</string>
+    <string name="number_jump_hint">Tip: type a channel number on the remote to jump</string>
+    <string name="version_label">v%s</string>
+
+    <!-- Toolbar accessibility -->
+    <string name="cd_btn_switch_device">Switch device</string>
+    <string name="cd_btn_epg">Open EPG guide</string>
+    <string name="cd_btn_recordings">Open recordings</string>
+    <string name="cd_btn_settings">Open settings</string>
+    <string name="cd_btn_timers">Open timers</string>
+    <string name="cd_btn_wol">Send Wake-on-LAN</string>
+    <string name="cd_btn_screenshot">Show receiver screenshot</string>
+    <string name="cd_picon_for">Logo for %s</string>
+    <string name="cd_btn_delete_timer">Delete timer</string>
+    <string name="cd_recording_in_progress">Recording in progress</string>
+    <string name="rec_badge">● REC</string>
+    <!-- Composite content descriptions for list rows (read by TalkBack) -->
+    <string name="cd_channel_row">Channel %1$d. %2$s. Now playing: %3$s</string>
+    <string name="cd_channel_row_no_epg">Channel %1$d. %2$s</string>
+    <string name="cd_recording_row">%1$s, recorded on %2$s on %3$s, %4$s</string>
+    <string name="cd_timer_row">%1$s. %2$s. %3$s. State: %4$s</string>
+
+    <!-- Setup feedback -->
+    <string name="setup_testing_connection">Connecting to receiver…</string>
+    <string name="setup_host_required">Receiver IP address is required</string>
+    <string name="setup_invalid_mac">Invalid MAC address. Use format AA:BB:CC:DD:EE:FF</string>
+    <string name="setup_error">Error: %s</string>
+
+    <!-- ViewModel error templates -->
+    <string name="vm_error_recordings">Failed to load recordings: %s</string>
+    <string name="vm_error_epg">Failed to load EPG: %s</string>
+    <string name="vm_error_channels">Failed to load channels: %s</string>
+
+    <!-- Network error reasons -->
+    <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="error_host_not_found">Receiver not found. Check the host name in Settings.</string>
+    <string name="error_timeout">Receiver took too long to respond.</string>
+    <string name="error_ssl">Secure connection failed. Check HTTPS settings.</string>
+    <string name="error_auth">Authentication failed. Check username and password.</string>
+    <string name="error_not_found">Receiver responded but the requested resource was not found.</string>
+    <string name="error_server">Receiver error (HTTP %d). Try again in a moment.</string>
+    <string name="error_http">Receiver returned HTTP %d.</string>
+    <string name="error_network">Could not reach the receiver. Check your network connection.</string>
+    <string name="error_offline">Device is offline. Connect to Wi-Fi or Ethernet.</string>
+    <string name="error_retry_hint">Press OK to retry</string>
+    <string name="error_with_retry_hint">%1$s\n\n%2$s</string>
+
+    <!-- Recording / Timer actions -->
+    <string name="recording_action_title">Recording options</string>
+    <string name="action_play">Play</string>
+    <string name="action_add_to_playlist">Add to playlist…</string>
+    <string name="action_delete_recording">Delete recording…</string>
+    <string name="recording_delete_title">Delete recording?</string>
+    <string name="recording_delete_message">This will permanently delete \"%s\" from the receiver. This cannot be undone.</string>
+    <string name="recording_deleted_ok">Deleted: %s</string>
+    <string name="recording_delete_failed">Delete failed: %s</string>
+    <string name="timer_disabled_badge">Disabled</string>
+    <string name="timer_action_enable">Enable timer</string>
+    <string name="timer_action_disable">Disable timer</string>
+    <string name="timer_toggle_failed">Could not change timer: %s</string>
+    <string name="playlist_drag_hint">Tip: long-press an entry, then drag up or down to reorder.</string>
+
+    <!-- Multi-select recordings -->
+    <string name="action_select_multiple">Select multiple\u2026</string>
+    <string name="select_all">All</string>
+    <string name="selection_count">%d selected</string>
+    <string name="recordings_delete_title">Delete %d recordings?</string>
+    <string name="recordings_delete_message">This will permanently delete the selected recordings from the receiver. This cannot be undone.</string>
+    <string name="recordings_deleted_summary">Deleted %1$d of %2$d</string>
 
 </resources>

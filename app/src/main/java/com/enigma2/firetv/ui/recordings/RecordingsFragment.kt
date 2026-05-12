@@ -10,6 +10,7 @@ import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -47,6 +48,18 @@ class RecordingsFragment : Fragment() {
     private lateinit var btnPlaylists: TextView
     private lateinit var btnSort: TextView
 
+    // Selection-mode toolbar
+    private lateinit var toolbarNormal: View
+    private lateinit var toolbarSelection: View
+    private lateinit var tvSelectionCount: TextView
+    private lateinit var btnSelectAll: TextView
+    private lateinit var btnDeleteSelected: TextView
+    private lateinit var btnCancelSelection: TextView
+
+    private val backCallback = object : OnBackPressedCallback(false) {
+        override fun handleOnBackPressed() { viewModel.exitSelectionMode() }
+    }
+
     // Detail-panel views
     private lateinit var tvDetailHint: TextView
     private lateinit var tvDetailTitle: TextView
@@ -82,6 +95,12 @@ class RecordingsFragment : Fragment() {
                 .commit()
         }
 
+        btnSelectAll.setOnClickListener { viewModel.selectAll() }
+        btnCancelSelection.setOnClickListener { viewModel.exitSelectionMode() }
+        btnDeleteSelected.setOnClickListener { confirmDeleteSelected() }
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
+
         if (viewModel.recordings.value.isNullOrEmpty()) {
             viewModel.loadRecordings()
         }
@@ -95,6 +114,13 @@ class RecordingsFragment : Fragment() {
         btnRefresh       = view.findViewById(R.id.btn_refresh)
         btnPlaylists     = view.findViewById(R.id.btn_playlists)
         btnSort          = view.findViewById(R.id.btn_sort)
+
+        toolbarNormal       = view.findViewById(R.id.toolbar_normal)
+        toolbarSelection    = view.findViewById(R.id.toolbar_selection)
+        tvSelectionCount    = view.findViewById(R.id.tv_selection_count)
+        btnSelectAll        = view.findViewById(R.id.btn_select_all)
+        btnDeleteSelected   = view.findViewById(R.id.btn_delete_selected)
+        btnCancelSelection  = view.findViewById(R.id.btn_cancel_selection)
 
         tvDetailHint        = view.findViewById(R.id.tv_detail_hint)
         tvDetailTitle       = view.findViewById(R.id.tv_detail_title)
@@ -110,10 +136,47 @@ class RecordingsFragment : Fragment() {
         adapter = RecordingAdapter(
             onRecordingClick   = { recording -> playRecording(recording) },
             onRecordingFocused = { recording -> viewModel.onRecordingFocused(recording) },
-            onRecordingLongClick = { recording -> showAddToPlaylistDialog(recording) }
+            onRecordingLongClick = { recording -> showRecordingActionsDialog(recording) },
+            onSelectionToggle = { recording -> viewModel.toggleSelection(recording) }
         )
         rvRecordings.layoutManager = LinearLayoutManager(requireContext())
         rvRecordings.adapter = adapter
+    }
+
+    private fun showRecordingActionsDialog(recording: Recording) {
+        val actions = arrayOf(
+            getString(R.string.action_play),
+            getString(R.string.action_add_to_playlist),
+            getString(R.string.action_select_multiple),
+            getString(R.string.action_delete_recording)
+        )
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.recording_action_title))
+            .setItems(actions) { _, which ->
+                when (which) {
+                    0 -> playRecording(recording)
+                    1 -> showAddToPlaylistDialog(recording)
+                    2 -> viewModel.enterSelectionMode(recording)
+                    3 -> confirmDeleteRecording(recording)
+                }
+            }
+            .show()
+    }
+
+    private fun confirmDeleteRecording(recording: Recording) {
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.recording_delete_title))
+            .setMessage(getString(R.string.recording_delete_message, recording.displayTitle))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                viewModel.deleteRecording(recording) { ok, msg ->
+                    if (!isAdded) return@deleteRecording
+                    val text = if (ok) getString(R.string.recording_deleted_ok, recording.displayTitle)
+                               else getString(R.string.recording_delete_failed, msg ?: "")
+                    android.widget.Toast.makeText(requireContext(), text, android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun observeViewModel() {
@@ -122,8 +185,15 @@ class RecordingsFragment : Fragment() {
         }
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
-            tvError.text = error
-            tvError.visibility = if (error != null) View.VISIBLE else View.GONE
+            if (error != null) {
+                tvError.text = getString(
+                    R.string.error_with_retry_hint, error, getString(R.string.error_retry_hint)
+                )
+                tvError.visibility = View.VISIBLE
+                tvError.setOnClickListener { viewModel.loadRecordings() }
+            } else {
+                tvError.visibility = View.GONE
+            }
         }
 
         viewModel.recordings.observe(viewLifecycleOwner) { recordings ->
@@ -134,6 +204,45 @@ class RecordingsFragment : Fragment() {
         viewModel.focusedRecording.observe(viewLifecycleOwner) { recording ->
             if (recording == null) showHintState() else showDetailState(recording)
         }
+
+        viewModel.selectionMode.observe(viewLifecycleOwner) { enabled ->
+            adapter.setSelectionMode(enabled)
+            toolbarNormal.visibility = if (enabled) View.GONE else View.VISIBLE
+            toolbarSelection.visibility = if (enabled) View.VISIBLE else View.GONE
+            backCallback.isEnabled = enabled
+            if (!enabled) updateSelectionUi(emptySet())
+        }
+
+        viewModel.selectedFilenames.observe(viewLifecycleOwner) { selected ->
+            adapter.setSelectedFilenames(selected)
+            updateSelectionUi(selected)
+        }
+    }
+
+    private fun updateSelectionUi(selected: Set<String>) {
+        tvSelectionCount.text = getString(R.string.selection_count, selected.size)
+        btnDeleteSelected.isEnabled = selected.isNotEmpty()
+        btnDeleteSelected.alpha = if (selected.isEmpty()) 0.4f else 1f
+    }
+
+    private fun confirmDeleteSelected() {
+        val count = viewModel.selectedFilenames.value?.size ?: 0
+        if (count == 0) return
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.recordings_delete_title, count))
+            .setMessage(getString(R.string.recordings_delete_message))
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
+                viewModel.deleteSelected { ok, total ->
+                    if (!isAdded) return@deleteSelected
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        getString(R.string.recordings_deleted_summary, ok, total),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun showHintState() {
@@ -162,8 +271,8 @@ class RecordingsFragment : Fragment() {
         val dur = recording.formatDuration()
         tvDetailDatetime.text = listOfNotNull(
             dateStr.takeIf { it.isNotBlank() },
-            dur.takeIf { it.isNotBlank() }?.let { "Duration: $it" }
-        ).joinToString("   ·   ")
+            dur.takeIf { it.isNotBlank() }?.let { getString(R.string.recording_duration_label, it) }
+        ).joinToString("   \u00b7   ")
 
         val synopsis = recording.synopsis
         if (synopsis.isNotBlank()) {
@@ -184,9 +293,13 @@ class RecordingsFragment : Fragment() {
             getString(R.string.sort_by_channel)
         )
         val orders = arrayOf(SortOrder.DATE_DESC, SortOrder.DATE_ASC, SortOrder.NAME, SortOrder.CHANNEL)
+        val checked = orders.indexOf(viewModel.sortOrder).coerceAtLeast(0)
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.sort_recordings))
-            .setItems(opts) { _, which -> viewModel.sortBy(orders[which]) }
+            .setSingleChoiceItems(opts, checked) { dialog, which ->
+                viewModel.sortBy(orders[which])
+                dialog.dismiss()
+            }
             .show()
     }
 

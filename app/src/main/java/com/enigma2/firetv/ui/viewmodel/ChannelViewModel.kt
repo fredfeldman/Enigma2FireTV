@@ -1,16 +1,19 @@
 package com.enigma2.firetv.ui.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.Bouquet
 import com.enigma2.firetv.data.model.NowNextEvent
 import com.enigma2.firetv.data.model.Service
 import com.enigma2.firetv.data.repository.Enigma2Repository
+import com.enigma2.firetv.util.ApiErrors
 import kotlinx.coroutines.launch
 
-class ChannelViewModel : ViewModel() {
+class ChannelViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         const val FAVORITES_REF = "__favorites__"
@@ -57,7 +60,9 @@ class ChannelViewModel : ViewModel() {
                     selectBouquet(list[0])
                 }
             } catch (e: Exception) {
-                _error.value = "Failed to load channels: ${e.message}"
+                _error.value = getApplication<Application>().getString(
+                    R.string.vm_error_channels, ApiErrors.userMessage(getApplication(), e)
+                )
             } finally {
                 _isLoading.value = false
             }
@@ -76,8 +81,14 @@ class ChannelViewModel : ViewModel() {
 
     private fun loadChannels(bouquetRef: String) {
         viewModelScope.launch {
-            val services = repository.getChannels(bouquetRef)
-            _channels.value = services
+            try {
+                _channels.value = repository.getChannels(bouquetRef)
+            } catch (e: Exception) {
+                _error.value = getApplication<Application>().getString(
+                    R.string.vm_error_channels, ApiErrors.userMessage(getApplication(), e)
+                )
+                _channels.value = emptyList()
+            }
         }
     }
 
@@ -88,8 +99,11 @@ class ChannelViewModel : ViewModel() {
 
     fun loadNowNext(bouquetRef: String) {
         viewModelScope.launch {
-            val nn = repository.getNowNext(bouquetRef)
-            _nowNext.value = nn
+            try {
+                _nowNext.value = repository.getNowNext(bouquetRef)
+            } catch (_: Exception) {
+                // Now/next is best-effort overlay; keep prior value silently.
+            }
         }
     }
 

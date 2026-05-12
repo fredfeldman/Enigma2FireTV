@@ -24,7 +24,8 @@
         android:layout_width="56dp"
         android:layout_height="40dp"
         android:scaleType="fitCenter"
-        android:layout_marginEnd="12dp" />
+        android:layout_marginEnd="12dp"
+        android:importantForAccessibility="no" />
 
     <!-- Channel name + now playing -->
     <LinearLayout
@@ -69,11 +70,12 @@
         android:id="@+id/tv_rec_badge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="● REC"
+        android:text="@string/rec_badge"
         android:textColor="#FFFF4444"
         android:textSize="10sp"
         android:textStyle="bold"
         android:layout_marginStart="4dp"
+        android:contentDescription="@string/cd_recording_in_progress"
         android:visibility="gone" />
 
     <!-- Favorite indicator (visual only – toggled via long-press menu) -->

@@ -19,6 +19,7 @@
 
         <!-- Toolbar -->
         <LinearLayout
+            android:id="@+id/toolbar_normal"
             android:layout_width="match_parent"
             android:layout_height="48dp"
             android:gravity="center_vertical"
@@ -72,6 +73,63 @@
 
         </LinearLayout>
 
+        <!-- Selection-mode toolbar (shown when multi-select is active) -->
+        <LinearLayout
+            android:id="@+id/toolbar_selection"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:background="@color/accent"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_selection_count"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/btn_select_all"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/select_all"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="6dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_delete_selected"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/delete"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="6dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_cancel_selection"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/cancel"
+                android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:focusable="true" />
+
+        </LinearLayout>
+
         <!-- Loading spinner -->
         <ProgressBar
             android:id="@+id/loading_indicator"
@@ -89,7 +147,10 @@
             android:textColor="@color/error"
             android:textSize="13sp"
             android:padding="12dp"
-            android:visibility="gone" />
+            android:visibility="gone"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="?android:attr/selectableItemBackground" />
 
         <!-- Empty state -->
         <TextView

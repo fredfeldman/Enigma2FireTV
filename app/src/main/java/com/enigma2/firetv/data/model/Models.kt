@@ -155,6 +155,15 @@ data class Timer(
         4 -> "Failed"
         else -> "Unknown"
     }
+    fun stateLabelResId(): Int = when {
+        disabled == 1 -> com.enigma2.firetv.R.string.timer_disabled_badge
+        state == 0 -> com.enigma2.firetv.R.string.timer_state_waiting
+        state == 1 -> com.enigma2.firetv.R.string.timer_state_preparing
+        state == 2 -> com.enigma2.firetv.R.string.timer_state_recording
+        state == 3 -> com.enigma2.firetv.R.string.timer_state_done
+        state == 4 -> com.enigma2.firetv.R.string.timer_state_failed
+        else -> com.enigma2.firetv.R.string.timer_state_unknown
+    }
 }
 
 data class TimerDeleteResponse(

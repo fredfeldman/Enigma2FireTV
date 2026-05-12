@@ -1,6 +1,6 @@
 # Enigma2 FireTV – User Guide
 
-> **Version 1.03**
+> **Version 1.0.4**
 
 ## Table of Contents
 1. [First-Time Setup](#1-first-time-setup)
@@ -9,10 +9,12 @@
 4. [OSD & Playback Controls](#4-osd--playback-controls)
 5. [EPG Guide](#5-epg-guide)
 6. [Recordings](#6-recordings)
-7. [Playlists](#7-playlists)
-8. [Multiple Devices](#8-multiple-devices)
-9. [Settings](#9-settings)
-10. [Remote Control Reference](#10-remote-control-reference)
+7. [Timers](#7-timers)
+8. [AutoTimers](#8-autotimers)
+9. [Playlists](#9-playlists)
+10. [Multiple Devices](#10-multiple-devices)
+11. [Settings](#11-settings)
+12. [Remote Control Reference](#12-remote-control-reference)
 
 ---
 
@@ -41,6 +43,8 @@ The main screen is split into two panels:
 - **Left panel** — bouquet (channel group) list
 - **Right panel** — channel list for the selected bouquet
 
+Each channel row shows the **channel logo (picon)** alongside the channel name when picons are available on the receiver.
+
 ### Toolbar buttons (top-right)
 
 | Button | Action |
@@ -48,8 +52,11 @@ The main screen is split into two panels:
 | Switch Device | Switch between configured receivers |
 | EPG | Open the full EPG grid |
 | Recordings | Browse recordings stored on the receiver |
+| Timers | View scheduled recordings (and open AutoTimers from there) |
 | Playlists | Open your saved playlists |
 | Settings | Change receiver settings |
+| Wake on LAN | Send a magic packet to wake the receiver |
+| Screenshot | Show the current image on the receiver |
 
 Use the **D-pad** to move between bouquets and channels. Press **OK / Select** on a channel to start playing it.
 
@@ -63,13 +70,16 @@ Pressing OK on a channel immediately starts playback in full-screen. The stream 
 - Press **OK / Select** or **Play/Pause** at any time to show the OSD again.
 - Press **Back** to stop playback and return to the channel list.
 
+### Auto-tune last channel
+When the app launches it automatically resumes the last channel you were watching. To disable this behaviour go to **Settings → Playback → Auto-tune last channel**.
+
 ---
 
 ## 4. OSD & Playback Controls
 
 ### Live TV OSD
 Shows:
-- Channel name and logo
+- Channel logo (picon) and channel name
 - Current programme title and next programme
 - Event progress bar
 
@@ -97,8 +107,10 @@ When playing a playlist the player automatically advances to the next entry when
 Open the EPG by pressing the **EPG** button in the toolbar.
 
 - The grid shows all channels with their current and upcoming programmes.
+- The channel column on the left shows each channel's **logo (picon)** and name.
 - The time ruler runs across the top.
 - The current time is highlighted with a vertical marker.
+- Events that are **scheduled for recording or currently recording** are highlighted with a **red overlay** in the grid.
 
 | Button | Action |
 |---|---|
@@ -130,7 +142,47 @@ The list loads automatically when you open the screen. Press the **Refresh** but
 
 ---
 
-## 7. Playlists
+## 7. Timers
+
+Open **Timers** from the main screen toolbar to view all scheduled and active recordings on the receiver.
+
+- Each timer shows the channel, programme title, start/end time, and current status (scheduled, recording, done).
+- The app checks for active timers **every 15 minutes in the background** and posts a device notification when a recording is about to start or is currently in progress.
+
+> **Note:** To receive notifications you must grant the **Notifications** permission when prompted.
+
+---
+
+## 8. AutoTimers
+
+The **AutoTimers** screen lets you manage AutoTimer rules on the receiver. An AutoTimer rule watches the EPG for events whose title contains a phrase you specify and automatically schedules a recording for any hits.
+
+Open it from the **Timers** screen toolbar by tapping **AutoTimers**.
+
+> **Note:** This requires the **AutoTimer plugin** to be installed on the Enigma2 receiver. If the plugin is missing the list will be empty.
+
+### Adding a rule
+1. Tap **+ Add**.
+2. Enter a friendly **Name** (optional — defaults to the match phrase).
+3. Enter the **Match** text — any EPG title containing this text will be recorded.
+4. Optional: set **After** / **Before** times in `HH:MM` to restrict matching to a daily window.
+5. Make sure **Enabled** is checked, then tap **OK**.
+
+### Editing a rule
+Tap any row to open the same editor pre-filled with the existing values.
+
+### Enable / Disable
+Tap the **Enable** or **Disable** button on a row to flip the rule's state without deleting it.
+
+### Delete
+Tap **Delete** on a row and confirm.
+
+### Scan now
+Tap **Scan now** in the toolbar to make the receiver immediately scan its EPG and create timers for any matching events. New timers (if any) appear on the regular **Timers** screen.
+
+---
+
+## 9. Playlists
 
 ### Opening Playlists
 Tap **Playlists** in the main screen toolbar.
@@ -168,7 +220,7 @@ From the **Playlist Manager**, long-press any playlist to get options for **Rena
 
 ---
 
-## 8. Multiple Devices
+## 10. Multiple Devices
 
 You can configure as many Enigma2 receivers as you like.
 
@@ -188,24 +240,61 @@ From the **Switch Device** screen, long-press any device entry for **Edit** or *
 
 ---
 
-## 9. Settings
+## 11. Settings
 
 Open **Settings** from the main screen toolbar.
+
+### Receiver Connection
 
 | Setting | Description |
 |---|---|
 | Host | IP address or hostname of the active receiver |
 | Port | OpenWebif HTTP port (default 80) |
 | HTTPS | Use HTTPS instead of HTTP |
+
+### Authentication
+
+| Setting | Description |
+|---|---|
 | Username | HTTP Basic Auth username (leave blank if none) |
 | Password | HTTP Basic Auth password (leave blank if none) |
+
+### Receiver
+
+| Setting | Description |
+|---|---|
+| Box info | Show the receiver's brand, model, image / kernel / Enigma2 / WebIF versions, uptime, MAC address, tuners, hard disks, and network interfaces. Read-only. |
+
+### Bouquets
+
+| Setting | Description |
+|---|---|
 | Hidden Bouquets | Choose bouquets to hide from the channel list |
+
+### Appearance
+
+| Setting | Description |
+|---|---|
+| Night Mode | Toggle dark/light theme |
+
+### Playback
+
+| Setting | Description |
+|---|---|
+| Auto-tune last channel | When enabled (default), the app automatically resumes the last watched channel when launched. Turn off to always start at the channel list. |
+| Tune receiver to channel | When enabled (default), picking a channel in the app also retunes the Enigma2 receiver to it. Turn off to keep the receiver on whatever it was playing — useful if someone else is watching live on the box. |
+
+### About
+
+| Setting | Description |
+|---|---|
+| App version | Shows the installed app version and build code. |
 
 Changes take effect immediately — the app reinitialises the API connection after saving.
 
 ---
 
-## 10. Remote Control Reference
+## 12. Remote Control Reference
 
 | Button | Action |
 |---|---|

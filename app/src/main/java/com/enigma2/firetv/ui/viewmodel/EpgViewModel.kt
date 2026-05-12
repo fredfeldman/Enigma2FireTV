@@ -1,14 +1,17 @@
 package com.enigma2.firetv.ui.viewmodel
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.repository.Enigma2Repository
+import com.enigma2.firetv.util.ApiErrors
 import kotlinx.coroutines.launch
 
-class EpgViewModel : ViewModel() {
+class EpgViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repository = Enigma2Repository()
 
@@ -35,7 +38,9 @@ class EpgViewModel : ViewModel() {
                 // Group by service reference
                 _epgMap.value = events.groupBy { it.serviceRef }
             } catch (e: Exception) {
-                _error.value = "Failed to load EPG: ${e.message}"
+                _error.value = getApplication<Application>().getString(
+                    R.string.vm_error_epg, ApiErrors.userMessage(getApplication(), e)
+                )
             } finally {
                 _isLoading.value = false
             }
@@ -50,7 +55,9 @@ class EpgViewModel : ViewModel() {
                 val events = repository.getEpgForService(serviceRef)
                 _serviceEpg.value = events.sortedBy { it.beginTimestamp }
             } catch (e: Exception) {
-                _error.value = "Failed to load EPG: ${e.message}"
+                _error.value = getApplication<Application>().getString(
+                    R.string.vm_error_epg, ApiErrors.userMessage(getApplication(), e)
+                )
             } finally {
                 _isLoading.value = false
             }

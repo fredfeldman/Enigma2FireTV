@@ -102,7 +102,12 @@ class SetupFragment : Fragment() {
         val macAddress = etMacAddress.text?.toString()?.trim() ?: ""
 
         if (host.isBlank()) {
-            showStatus(getString(R.string.hint_receiver_ip) + " is required", isError = true)
+            showStatus(getString(R.string.setup_host_required), isError = true)
+            return
+        }
+
+        if (macAddress.isNotBlank() && !MAC_REGEX.matches(macAddress)) {
+            showStatus(getString(R.string.setup_invalid_mac), isError = true)
             return
         }
 
@@ -110,7 +115,7 @@ class SetupFragment : Fragment() {
         val deviceName = rawName.ifBlank { host }
 
         setLoading(true)
-        showStatus("", isError = false)
+        showStatus(getString(R.string.setup_testing_connection), isError = false)
 
         ApiClient.initialize(host, port, useHttps, username, password)
 
@@ -122,7 +127,7 @@ class SetupFragment : Fragment() {
                 android.util.Log.e("SetupFragment", "Connection failed", e)
                 setLoading(false)
                 val msg = e.message ?: e.javaClass.simpleName
-                showStatus("Error: $msg", isError = true)
+                showStatus(getString(R.string.setup_error, msg), isError = true)
                 return@launch
             }
             setLoading(false)
@@ -191,6 +196,7 @@ class SetupFragment : Fragment() {
     companion object {
         private const val ARG_DEVICE_ID = "deviceId"
         private const val ARG_SHOW_CANCEL = "showCancel"
+        private val MAC_REGEX = Regex("^([0-9A-Fa-f]{2}[:\\-]){5}[0-9A-Fa-f]{2}\$")
 
         fun newInstance(deviceId: String? = null, showCancel: Boolean = false) =
             SetupFragment().apply {

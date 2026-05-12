@@ -27,7 +27,10 @@ class TimersFragment : Fragment() {
     private lateinit var loadingIndicator: ProgressBar
     private lateinit var tvEmpty: TextView
     private lateinit var btnRefresh: TextView
-    private val adapter = TimerAdapter { timer -> confirmDelete(timer) }
+    private val adapter = TimerAdapter(
+        onDeleteClick = { timer -> confirmDelete(timer) },
+        onToggleClick = { timer -> confirmToggle(timer) }
+    )
     private val repository = Enigma2Repository()
 
     override fun onCreateView(
@@ -46,6 +49,16 @@ class TimersFragment : Fragment() {
         rvTimers.adapter = adapter
 
         btnRefresh.setOnClickListener { loadTimers() }
+
+        view.findViewById<TextView>(R.id.btn_open_autotimer).setOnClickListener {
+            parentFragmentManager.beginTransaction()
+                .replace(
+                    com.enigma2.firetv.R.id.main_container,
+                    com.enigma2.firetv.ui.autotimer.AutoTimerFragment()
+                )
+                .addToBackStack(null)
+                .commit()
+        }
 
         loadTimers()
     }
@@ -98,6 +111,42 @@ class TimersFragment : Fragment() {
                 Toast.makeText(
                     requireContext(),
                     getString(R.string.timer_deleted_fail, e.message ?: ""),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    private fun confirmToggle(timer: Timer) {
+        val titleRes = if (timer.disabled == 1) R.string.timer_action_enable
+                       else R.string.timer_action_disable
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(titleRes))
+            .setMessage(timer.name)
+            .setPositiveButton(android.R.string.ok) { _, _ -> toggleTimer(timer) }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun toggleTimer(timer: Timer) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val result = repository.toggleTimer(timer)
+                if (!result.result) {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.timer_toggle_failed, result.message ?: ""),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                loadTimers()
+            } catch (e: Exception) {
+                Toast.makeText(
+                    requireContext(),
+                    getString(
+                        R.string.timer_toggle_failed,
+                        com.enigma2.firetv.util.ApiErrors.userMessage(requireContext(), e)
+                    ),
                     Toast.LENGTH_LONG
                 ).show()
             }

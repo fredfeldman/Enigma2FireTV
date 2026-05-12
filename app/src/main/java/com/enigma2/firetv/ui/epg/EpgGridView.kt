@@ -54,6 +54,8 @@ class EpgGridView @JvmOverloads constructor(
     // ---- Data ----
     private var services: List<Service> = emptyList()
     private var epgMap: Map<String, List<EpgEvent>> = emptyMap()
+    /** Pre-sorted-by-begin events per service.ref, computed once in [setData]. */
+    private var sortedEventsByService: Map<String, List<EpgEvent>> = emptyMap()
     // Each entry is Triple(serviceRef, beginMs, endMs) for active/scheduled timers
     private var timerRanges: List<Triple<String, Long, Long>> = emptyList()
 
@@ -122,6 +124,8 @@ class EpgGridView @JvmOverloads constructor(
     fun setData(services: List<Service>, epgMap: Map<String, List<EpgEvent>>) {
         this.services = services
         this.epgMap = epgMap
+        // Pre-sort each row once instead of re-sorting on every frame / D-pad keystroke.
+        this.sortedEventsByService = epgMap.mapValues { (_, events) -> events.sortedBy { it.beginMs } }
         // Reset selection
         selectedRow = 0
         selectedCol = findNowEventIndex(0)
@@ -142,7 +146,7 @@ class EpgGridView @JvmOverloads constructor(
 
     fun getSelectedEvent(): EpgEvent? {
         val sref = services.getOrNull(selectedRow)?.ref ?: return null
-        return epgMap[sref]?.getOrNull(selectedCol)
+        return sortedEventsByService[sref]?.getOrNull(selectedCol)
     }
 
     // ---- Measurement ----
@@ -163,19 +167,24 @@ class EpgGridView @JvmOverloads constructor(
         services.forEachIndexed rowLoop@{ rowIndex, service ->
             val top = rowIndex * rowHeight.toFloat()
             val bottom = top + rowHeight
-            val events = epgMap[service.ref]?.sortedBy { it.beginMs } ?: return@rowLoop
+            val events = sortedEventsByService[service.ref] ?: return@rowLoop
+
+            // Pre-compute timer ranges relevant to this row only.
+            val rowTimerRanges = if (timerRanges.isEmpty()) emptyList()
+                                 else timerRanges.filter { it.first == service.ref }
 
             events.forEachIndexed { colIndex, event ->
                 val startX = msToPixel(max(event.beginMs, windowStartMs))
                 val endX = msToPixel(event.endMs)
-                if (endX < 0 || startX > width) return@forEachIndexed
+                if (endX < 0) return@forEachIndexed       // event already scrolled past
+                if (startX > width) return@rowLoop        // sorted: nothing left to draw on this row
 
                 val rect = RectF(startX + eventPadding, top + eventPadding, endX - eventPadding, bottom - eventPadding)
 
                 // Background
                 val isSelected = rowIndex == selectedRow && colIndex == selectedCol
-                val isTimerEvent = timerRanges.any { (ref, tBegin, tEnd) ->
-                    ref == service.ref && tBegin < event.endMs && tEnd > event.beginMs
+                val isTimerEvent = rowTimerRanges.any { (_, tBegin, tEnd) ->
+                    tBegin < event.endMs && tEnd > event.beginMs
                 }
                 val bgPaint = when {
                     isSelected -> paintSelected
@@ -290,7 +299,7 @@ class EpgGridView @JvmOverloads constructor(
 
     private fun eventsForRow(row: Int): List<EpgEvent> {
         val sref = services.getOrNull(row)?.ref ?: return emptyList()
-        return epgMap[sref]?.sortedBy { it.beginMs } ?: emptyList()
+        return sortedEventsByService[sref] ?: emptyList()
     }
 
     private fun findNowEventIndex(row: Int): Int {

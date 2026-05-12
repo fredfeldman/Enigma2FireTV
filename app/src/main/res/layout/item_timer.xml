@@ -4,7 +4,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:padding="12dp"
-    android:background="@color/surface_dark"
+    android:background="@drawable/selector_channel_item"
     android:focusable="true"
     android:clickable="true">
 
@@ -44,7 +44,10 @@
             android:textColor="@color/error"
             android:textSize="18sp"
             android:padding="8dp"
-            android:focusable="true" />
+            android:focusable="true"
+            android:clickable="true"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_btn_delete_timer" />
 
     </LinearLayout>
 

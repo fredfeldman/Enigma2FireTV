@@ -82,6 +82,13 @@ class PlaylistPreferences(context: Context) {
         }
     }
 
+    /** Replaces the full entry list for a playlist (used by drag-to-reorder). */
+    fun setEntries(playlistId: String, entries: List<PlaylistEntry>) {
+        playlists = playlists.map { pl ->
+            if (pl.id == playlistId) pl.copy(entries = entries) else pl
+        }
+    }
+
     fun getPlaylist(id: String): RecordingPlaylist? = playlists.firstOrNull { it.id == id }
 
     companion object {

@@ -48,10 +48,16 @@ interface OpenWebifService {
     suspend fun getMultiEpg(@Query("bRef") bouquetRef: String): EpgResponse
 
     /**
-     * Returns currently-airing and next event for every service in a bouquet.
+     * Returns the currently-airing event for every service in a bouquet.
      */
-    @GET("api/epgmulti")
-    suspend fun getNowNext(@Query("bRef") bouquetRef: String): NowNextResponse
+    @GET("api/epgnow")
+    suspend fun getEpgNow(@Query("bRef") bouquetRef: String): EpgResponse
+
+    /**
+     * Returns the next event for every service in a bouquet.
+     */
+    @GET("api/epgnext")
+    suspend fun getEpgNext(@Query("bRef") bouquetRef: String): EpgResponse
 
     /**
      * Zap the receiver to a given service (optional – changes the live output on the box).
@@ -102,6 +108,23 @@ interface OpenWebifService {
     ): TimerDeleteResponse
 
     /**
+     * Toggles a timer's disabled state (enable <-> disable).
+     */
+    @GET("api/timertogglestatus")
+    suspend fun toggleTimerStatus(
+        @Query("sRef") sRef: String,
+        @Query("begin") begin: Long,
+        @Query("end") end: Long
+    ): TimerDeleteResponse
+
+    /**
+     * Deletes a recording on the receiver. [sRef] must be the recording's full
+     * service reference (which encodes the file path).
+     */
+    @GET("api/movieDelete")
+    suspend fun deleteMovie(@Query("sRef") sRef: String): TimerDeleteResponse
+
+    /**
      * Searches EPG across all services for events matching [query].
      */
     @GET("api/epgsearch")
@@ -114,4 +137,55 @@ interface OpenWebifService {
     @Streaming
     @GET("api/screenshot")
     suspend fun getScreenshot(): ResponseBody
+
+    // -------------------------------------------------------------------------
+    // AutoTimer plugin (XML responses; parsed by AutoTimerXml)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Returns the full list of AutoTimer rules as the plugin's native XML.
+     */
+    @GET("autotimer/get")
+    suspend fun getAutoTimers(): ResponseBody
+
+    /**
+     * Adds or edits an AutoTimer rule.
+     *
+     * Pass [id] = -1 (or omit) to add a new rule; passing an existing id updates that rule.
+     * [services] is a repeated `services` query parameter — one entry per service reference.
+     * The receiver returns a `<e2simplexmlresult>` body which the caller parses via
+     * [com.enigma2.firetv.data.api.AutoTimerXml.parseSimpleResult].
+     */
+    @GET("autotimer/edit")
+    suspend fun editAutoTimer(
+        @Query("id") id: Int,
+        @Query("name") name: String,
+        @Query("match") match: String,
+        @Query("enabled") enabled: String,
+        @Query("searchType") searchType: String = "partial",
+        @Query("searchCase") searchCase: String = "insensitive",
+        @Query("encoding") encoding: String = "UTF-8",
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+        @Query("services") services: List<String>? = null
+    ): ResponseBody
+
+    /**
+     * Deletes the AutoTimer rule with the given numeric id.
+     */
+    @GET("autotimer/remove")
+    suspend fun removeAutoTimer(@Query("id") id: Int): ResponseBody
+
+    /**
+     * Asks the receiver to scan the EPG now and create timers for any matching events.
+     */
+    @GET("autotimer/parse")
+    suspend fun parseAutoTimers(): ResponseBody
+
+    /**
+     * Returns receiver hardware/software info: brand, model, image version, kernel,
+     * uptime, tuners, hard disks, network interfaces, etc. Wrapped in `{ "info": {...} }`.
+     */
+    @GET("api/about")
+    suspend fun getAbout(): Map<String, Any>
 }

@@ -25,6 +25,14 @@ class PlaylistDetailAdapter(
 
     fun getItems(): List<PlaylistEntry> = items.toList()
 
+    /** Swap two items in-place during a drag gesture (no DB write). */
+    fun moveItem(from: Int, to: Int) {
+        if (from == to || from !in items.indices || to !in items.indices) return
+        val item = items.removeAt(from)
+        items.add(to, item)
+        notifyItemMoved(from, to)
+    }
+
     override fun getItemCount() = items.size
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {

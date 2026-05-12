@@ -1,28 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory android:title="Receiver Connection">
+    <PreferenceCategory android:title="@string/pref_category_connection">
 
         <EditTextPreference
             android:key="host"
             android:title="@string/pref_title_host"
             android:summary="@string/pref_summary_host"
             android:inputType="textUri"
-            android:singleLine="true" />
+            android:singleLine="true"
+            app:useSimpleSummaryProvider="true"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
 
         <EditTextPreference
             android:key="port"
             android:title="@string/pref_title_port"
             android:inputType="number"
-            android:singleLine="true" />
+            android:singleLine="true"
+            app:useSimpleSummaryProvider="true"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
 
         <SwitchPreferenceCompat
             android:key="use_https"
-            android:title="@string/pref_title_https" />
+            android:title="@string/pref_title_https"
+            android:summary="@string/pref_summary_https" />
+
+        <Preference
+            android:key="test_connection"
+            android:title="@string/pref_title_test_connection"
+            android:summary="@string/pref_summary_test_connection" />
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Authentication">
+    <PreferenceCategory android:title="@string/pref_category_auth">
 
         <EditTextPreference
             android:key="username"
@@ -38,6 +48,15 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/pref_category_receiver">
+
+        <Preference
+            android:key="box_info"
+            android:title="@string/pref_title_box_info"
+            android:summary="@string/pref_summary_box_info" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/pref_category_bouquets">
 
         <Preference
@@ -47,7 +66,7 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Appearance">
+    <PreferenceCategory android:title="@string/pref_category_appearance">
 
         <SwitchPreferenceCompat
             android:key="night_mode_switch"
@@ -57,13 +76,28 @@
 
     </PreferenceCategory>
 
-    <PreferenceCategory android:title="Playback">
+    <PreferenceCategory android:title="@string/pref_category_playback">
 
         <SwitchPreferenceCompat
             android:key="auto_resume_channel"
-            android:title="Auto-tune last channel"
-            android:summary="Automatically resume the last watched channel on launch"
+            android:title="@string/pref_title_auto_resume"
+            android:summary="@string/pref_summary_auto_resume"
             android:defaultValue="true" />
+
+        <SwitchPreferenceCompat
+            android:key="zap_on_channel_change"
+            android:title="@string/pref_title_zap_on_change"
+            android:summary="@string/pref_summary_zap_on_change"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/pref_category_about">
+
+        <Preference
+            android:key="about_version"
+            android:title="@string/pref_title_app_version"
+            android:selectable="false" />
 
     </PreferenceCategory>
 

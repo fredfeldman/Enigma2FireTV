@@ -12,8 +12,8 @@ android {
         applicationId = "com.enigma2.firetv"
         minSdk = 25
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.03"
+        versionCode = 5
+        versionName = "1.0.4"
     }
 
     buildTypes {
@@ -37,6 +37,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     applicationVariants.all {

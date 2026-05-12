@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.enigma2.firetv.R
@@ -70,6 +71,30 @@ class PlaylistDetailFragment : Fragment() {
         )
         rvEntries.layoutManager = LinearLayoutManager(requireContext())
         rvEntries.adapter = adapter
+
+        // Drag-to-reorder via long-press
+        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun isLongPressDragEnabled(): Boolean = true
+
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                adapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                playlistPrefs.setEntries(playlistId, adapter.getItems())
+            }
+        })
+        touchHelper.attachToRecyclerView(rvEntries)
 
         btnPlayAll.setOnClickListener { playFrom(0) }
         btnAddVideos.setOnClickListener {

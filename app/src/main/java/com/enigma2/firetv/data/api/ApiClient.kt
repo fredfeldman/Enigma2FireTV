@@ -1,6 +1,8 @@
 package com.enigma2.firetv.data.api
 
 import android.util.Base64
+import com.enigma2.firetv.BuildConfig
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -41,13 +43,19 @@ object ApiClient {
         if (baseUrl == currentBaseUrl && _service != null) return
 
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                    else HttpLoggingInterceptor.Level.NONE
         }
 
         val client = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
+            .connectTimeout(8, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
+            .callTimeout(45, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
+            // Application interceptor: retries transient failures for safe HTTP methods
+            .addInterceptor(RetryInterceptor())
             .addInterceptor(logging)
             .apply {
                 if (username.isNotBlank()) {

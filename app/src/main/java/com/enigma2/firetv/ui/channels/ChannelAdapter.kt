@@ -29,6 +29,17 @@ class ChannelAdapter(
     private var recordingRefs: Set<String> = emptySet()
     private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+    /** Cached per-Adapter so we don't read SharedPreferences on every bind. */
+    private var cachedPrefs: ReceiverPreferences? = null
+    private fun prefs(context: android.content.Context): ReceiverPreferences =
+        cachedPrefs ?: ReceiverPreferences(context).also { cachedPrefs = it }
+
+    companion object {
+        /** Payload used by [updateNowNext] / [updateFavorites] / [updateRecordingRefs]
+         *  so we can refresh decorations without rebinding picons. */
+        private const val PAYLOAD_DECORATIONS = "decorations"
+    }
+
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val tvNumber: TextView = view.findViewById(R.id.tv_channel_number)
         val ivPicon: ImageView = view.findViewById(R.id.iv_picon)
@@ -47,10 +58,12 @@ class ChannelAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val service = getItem(position)
-        val prefs = ReceiverPreferences(holder.itemView.context)
+        val prefs = prefs(holder.itemView.context)
 
         holder.tvNumber.text = (position + 1).toString()
         holder.tvName.text = service.name
+        holder.ivPicon.contentDescription =
+            holder.itemView.context.getString(R.string.cd_picon_for, service.name)
 
         // Picon load order:
         // 1. ref with trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0_.png)
@@ -110,22 +123,81 @@ class ChannelAdapter(
 
         // Recording-in-progress badge
         holder.tvRecBadge.visibility = if (service.ref in recordingRefs) View.VISIBLE else View.GONE
+
+        // TalkBack: read the whole row in one breath
+        val nowText = holder.tvNowPlaying.text.toString()
+        holder.itemView.contentDescription = if (nowText.isNotBlank()) {
+            holder.itemView.context.getString(
+                R.string.cd_channel_row, position + 1, service.name, nowText
+            )
+        } else {
+            holder.itemView.context.getString(
+                R.string.cd_channel_row_no_epg, position + 1, service.name
+            )
+        }
+    }
+
+    /**
+     * Partial-rebind path used when only decorations (now/next, favorites,
+     * recording badge) changed. Skips picon reload entirely.
+     */
+    override fun onBindViewHolder(holder: ViewHolder, position: Int, payloads: MutableList<Any>) {
+        if (payloads.isEmpty() || !payloads.contains(PAYLOAD_DECORATIONS)) {
+            super.onBindViewHolder(holder, position, payloads)
+            return
+        }
+        val service = getItem(position)
+        bindDecorations(holder, service, position)
+    }
+
+    private fun bindDecorations(holder: ViewHolder, service: Service, position: Int) {
+        val nn = nowNextMap[service.ref]
+        val nowEvt = nn?.nowEvent
+        val nextEvt = nn?.nextEvent
+        if (nowEvt != null) {
+            val endTime = timeFmt.format(Date(nowEvt.endMs))
+            val nowText = "${nowEvt.title}  \u25b8 $endTime"
+            holder.tvNowPlaying.text = if (nextEvt != null) "$nowText  \u2502  ${nextEvt.title}" else nowText
+            val currentTime = System.currentTimeMillis()
+            val total = nowEvt.endMs - nowEvt.beginMs
+            val elapsed = currentTime - nowEvt.beginMs
+            val progress = if (total > 0) ((elapsed.toFloat() / total) * 100).toInt().coerceIn(0, 100) else 0
+            holder.pbProgress.progress = progress
+            holder.pbProgress.visibility = View.VISIBLE
+        } else if (nextEvt != null) {
+            holder.tvNowPlaying.text = "Next: ${nextEvt.title}"
+            holder.pbProgress.visibility = View.INVISIBLE
+        } else {
+            holder.tvNowPlaying.text = ""
+            holder.pbProgress.visibility = View.INVISIBLE
+        }
+        holder.btnFavorite.text = if (service.ref in favoriteRefs) "\u2605" else "\u2606"
+        holder.tvRecBadge.visibility = if (service.ref in recordingRefs) View.VISIBLE else View.GONE
+
+        val nowText = holder.tvNowPlaying.text.toString()
+        holder.itemView.contentDescription = if (nowText.isNotBlank()) {
+            holder.itemView.context.getString(R.string.cd_channel_row, position + 1, service.name, nowText)
+        } else {
+            holder.itemView.context.getString(R.string.cd_channel_row_no_epg, position + 1, service.name)
+        }
     }
 
     fun updateNowNext(events: List<NowNextEvent>) {
         nowNextMap.clear()
         events.forEach { nowNextMap[it.serviceRef] = it }
-        notifyDataSetChanged()
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_DECORATIONS)
     }
 
     fun updateFavorites(refs: Set<String>) {
+        if (favoriteRefs == refs) return
         favoriteRefs = refs
-        notifyDataSetChanged()
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_DECORATIONS)
     }
 
     fun updateRecordingRefs(refs: Set<String>) {
+        if (recordingRefs == refs) return
         recordingRefs = refs
-        notifyDataSetChanged()
+        notifyItemRangeChanged(0, itemCount, PAYLOAD_DECORATIONS)
     }
 
     private class DiffCallback : DiffUtil.ItemCallback<Service>() {

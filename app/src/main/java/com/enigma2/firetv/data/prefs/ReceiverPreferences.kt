@@ -196,6 +196,11 @@ class ReceiverPreferences(context: Context) {
         get() = prefs.getInt(KEY_NIGHT_MODE, androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES)
         set(value) = prefs.edit { putInt(KEY_NIGHT_MODE, value) }
 
+    /** Persisted name of the user's last selected recordings sort order (RecordingViewModel.SortOrder). */
+    var recordingsSortOrder: String
+        get() = prefs.getString(KEY_RECORDINGS_SORT, "DATE_DESC") ?: "DATE_DESC"
+        set(value) = prefs.edit { putString(KEY_RECORDINGS_SORT, value) }
+
     // ── Convenience ───────────────────────────────────────────────────────
 
     val isConfigured: Boolean
@@ -274,6 +279,8 @@ class ReceiverPreferences(context: Context) {
         private const val KEY_LAST_CHANNEL_REF = "last_channel_ref"
         private const val KEY_LAST_CHANNEL_NAME = "last_channel_name"
         private const val KEY_AUTO_RESUME = "auto_resume_channel"
+        private const val KEY_RECORDINGS_SORT = "recordings_sort_order"
+        private const val KEY_ZAP_ON_CHANGE = "zap_on_channel_change"
     }
 
     // ── Last played channel (auto-resume) ────────────────────────────────
@@ -288,6 +295,15 @@ class ReceiverPreferences(context: Context) {
     var autoResumeEnabled: Boolean
         get() = prefs.getBoolean(KEY_AUTO_RESUME, true)
         set(value) = prefs.edit { putBoolean(KEY_AUTO_RESUME, value) }
+
+    /**
+     * When true, picking a channel in the app also tunes the receiver to it
+     * (so the box, any connected TV, and the app stay in sync). When false,
+     * the receiver keeps playing whatever it was on.
+     */
+    var zapOnChannelChange: Boolean
+        get() = prefs.getBoolean(KEY_ZAP_ON_CHANGE, true)
+        set(value) = prefs.edit { putBoolean(KEY_ZAP_ON_CHANGE, value) }
 
     fun saveLastChannel(ref: String, name: String) {
         prefs.edit {

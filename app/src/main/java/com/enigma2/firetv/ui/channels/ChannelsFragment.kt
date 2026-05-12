@@ -21,6 +21,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.enigma2.firetv.BuildConfig
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.Bouquet
 import com.enigma2.firetv.data.model.NowNextEvent
@@ -62,6 +63,8 @@ class ChannelsFragment : Fragment() {
     private lateinit var loadingIndicator: ProgressBar
     private lateinit var tvError: TextView
     private lateinit var etChannelFilter: EditText
+    private lateinit var tvFilterEmpty: TextView
+    private lateinit var tvAppVersion: TextView
 
     private lateinit var bouquetAdapter: BouquetAdapter
     private lateinit var channelAdapter: ChannelAdapter
@@ -101,6 +104,9 @@ class ChannelsFragment : Fragment() {
         tvError = view.findViewById(R.id.tv_error)
         etChannelFilter = view.findViewById(R.id.et_channel_filter)
         etChannelFilter.addTextChangedListener { applyChannelFilter() }
+        tvFilterEmpty = view.findViewById(R.id.tv_filter_empty)
+        tvAppVersion = view.findViewById(R.id.tv_app_version)
+        tvAppVersion.text = getString(R.string.version_label, BuildConfig.VERSION_NAME)
 
         setupBouquetList()
         setupChannelList()
@@ -190,8 +196,14 @@ class ChannelsFragment : Fragment() {
 
         viewModel.error.observe(viewLifecycleOwner) { error ->
             if (error != null) {
-                tvError.text = error
+                tvError.text = getString(
+                    R.string.error_with_retry_hint, error, getString(R.string.error_retry_hint)
+                )
                 tvError.visibility = View.VISIBLE
+                tvError.setOnClickListener {
+                    viewModel.clearError()
+                    viewModel.loadBouquets()
+                }
             } else {
                 tvError.visibility = View.GONE
             }
@@ -228,19 +240,28 @@ class ChannelsFragment : Fragment() {
         val filtered = if (query.isEmpty()) fullChannelList
                        else fullChannelList.filter { it.name.contains(query, ignoreCase = true) }
         channelAdapter.submitList(filtered)
+        // Show empty-state hint only when the user has typed a non-matching query
+        tvFilterEmpty.visibility =
+            if (query.isNotEmpty() && filtered.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun playChannel(service: Service) {
         prefs.saveLastChannel(service.ref, service.name)
-        // Fire-and-forget: also tune the receiver to this channel
-        viewLifecycleOwner.lifecycleScope.launch {
-            try { repository.zap(service.ref) } catch (_: Exception) {}
+        // Fire-and-forget: also tune the receiver to this channel (if enabled)
+        if (prefs.zapOnChannelChange) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                try { repository.zap(service.ref) } catch (_: Exception) {}
+            }
         }
         val streamUrl = prefs.streamUrl(service.ref)
+        val channelIdx = fullChannelList.indexOfFirst { it.ref == service.ref }.coerceAtLeast(0)
         val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
             putExtra(PlayerActivity.EXTRA_STREAM_URL, streamUrl)
             putExtra(PlayerActivity.EXTRA_CHANNEL_NAME, service.name)
             putExtra(PlayerActivity.EXTRA_SERVICE_REF, service.ref)
+            putStringArrayListExtra(PlayerActivity.EXTRA_CHANNEL_REFS, ArrayList(fullChannelList.map { it.ref }))
+            putStringArrayListExtra(PlayerActivity.EXTRA_CHANNEL_NAMES_LIST, ArrayList(fullChannelList.map { it.name }))
+            putExtra(PlayerActivity.EXTRA_CHANNEL_INDEX, channelIdx)
         }
         startActivity(intent)
     }

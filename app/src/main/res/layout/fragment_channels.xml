@@ -29,9 +29,9 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tv_app_version"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="v1.03"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp" />
 
@@ -76,6 +76,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/switch_device"
+                android:contentDescription="@string/cd_btn_switch_device"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -88,6 +89,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/epg_guide"
+                android:contentDescription="@string/cd_btn_epg"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -100,6 +102,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/recordings"
+                android:contentDescription="@string/cd_btn_recordings"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -112,6 +115,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/settings"
+                android:contentDescription="@string/cd_btn_settings"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -124,6 +128,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/btn_timers"
+                android:contentDescription="@string/cd_btn_timers"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -136,6 +141,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/btn_wol"
+                android:contentDescription="@string/cd_btn_wol"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -148,6 +154,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_button"
                 android:text="@string/btn_screenshot"
+                android:contentDescription="@string/cd_btn_screenshot"
                 android:textColor="@android:color/white"
                 android:textSize="13sp"
                 android:padding="8dp"
@@ -183,7 +190,10 @@
             android:textColor="@color/error"
             android:textSize="14sp"
             android:visibility="gone"
-            android:padding="16dp" />
+            android:padding="16dp"
+            android:focusable="true"
+            android:clickable="true"
+            android:background="?android:attr/selectableItemBackground" />
 
         <!-- Channel name filter -->
         <EditText
@@ -206,6 +216,17 @@
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/tv_filter_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="24dp"
+            android:gravity="center"
+            android:text="@string/channel_filter_no_results"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
 
     </LinearLayout>
 

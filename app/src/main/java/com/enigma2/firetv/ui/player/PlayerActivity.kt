@@ -58,6 +58,12 @@ class PlayerActivity : FragmentActivity() {
         const val EXTRA_PLAYLIST_DURATIONS = "playlist_durations"
         /** Index within the playlist arrays where playback should start (default 0). */
         const val EXTRA_PLAYLIST_INDEX = "playlist_index"
+        /** Optional: full list of service refs for the current bouquet (enables channel up/down). */
+        const val EXTRA_CHANNEL_REFS = "channel_refs"
+        /** Optional: full list of channel names matching [EXTRA_CHANNEL_REFS]. */
+        const val EXTRA_CHANNEL_NAMES_LIST = "channel_names_list"
+        /** Optional: index of the currently playing channel within the above lists. */
+        const val EXTRA_CHANNEL_INDEX = "channel_index"
 
         private const val OSD_HIDE_DELAY_MS = 5_000L
     }
@@ -91,6 +97,11 @@ class PlayerActivity : FragmentActivity() {
     private var playlistIndex: Int = 0
     private lateinit var tvPlaylistInfo: TextView
 
+    // Channel list state (for channel up/down navigation)
+    private var channelRefs: List<String> = emptyList()
+    private var channelNamesList: List<String> = emptyList()
+    private var channelIndex: Int = 0
+
     private var player: ExoPlayer? = null
     private lateinit var prefs: ReceiverPreferences
     private val repository = Enigma2Repository()
@@ -106,7 +117,9 @@ class PlayerActivity : FragmentActivity() {
     private lateinit var btnSleep: TextView
     // Aspect ratio cycling: FIT(0) → FILL(3) → ZOOM(4)
     private val resizeModes = intArrayOf(0, 3, 4)
-    private val resizeModeLabels = arrayOf("Fit", "Fill", "Zoom")
+    private val resizeModeLabels: Array<String> by lazy {
+        arrayOf(getString(R.string.aspect_fit), getString(R.string.aspect_fill), getString(R.string.aspect_zoom))
+    }
     private var resizeModeIndex = 0
     private var sleepTimerRunnable: Runnable? = null
 
@@ -169,6 +182,11 @@ class PlayerActivity : FragmentActivity() {
         playlistIndex = intent.getIntExtra(EXTRA_PLAYLIST_INDEX, 0)
         updatePlaylistInfoView()
 
+        // Read channel list extras (for channel up/down)
+        channelRefs = intent.getStringArrayListExtra(EXTRA_CHANNEL_REFS) ?: emptyList()
+        channelNamesList = intent.getStringArrayListExtra(EXTRA_CHANNEL_NAMES_LIST) ?: emptyList()
+        channelIndex = intent.getIntExtra(EXTRA_CHANNEL_INDEX, 0)
+
         val streamUrl = intent.getStringExtra(EXTRA_STREAM_URL) ?: run {
             showError(getString(R.string.stream_error))
             return
@@ -209,8 +227,8 @@ class PlayerActivity : FragmentActivity() {
                 val h = durationSec / 3600
                 val m = (durationSec % 3600) / 60
                 val s = durationSec % 60
-                tvEventTime.text = if (h > 0) "Duration: %d:%02d:%02d".format(h, m, s)
-                                   else "Duration: %d:%02d".format(m, s)
+                val durStr = if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+                tvEventTime.text = getString(R.string.duration_label, durStr)
             }
             // Offer resume if there is a saved position
             val savedPos = prefs.getPlaybackPosition(streamUrl)
@@ -227,23 +245,21 @@ class PlayerActivity : FragmentActivity() {
     // -------------------------------------------------------------------------
 
     private fun offerResume(savedPos: Long) {
-        handler.postDelayed({
-            val h = savedPos / 3_600_000L
-            val m = (savedPos % 3_600_000L) / 60_000L
-            val s = (savedPos % 60_000L) / 1_000L
-            val posString = if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-            android.app.AlertDialog.Builder(this)
-                .setTitle(getString(R.string.resume_title))
-                .setMessage(getString(R.string.resume_message, posString))
-                .setPositiveButton(getString(R.string.resume_yes)) { _, _ ->
-                    player?.seekTo(savedPos)
-                    showOsd()
-                }
-                .setNegativeButton(getString(R.string.resume_no)) { _, _ ->
-                    prefs.clearPlaybackPosition(currentStreamUrl)
-                }
-                .show()
-        }, 600L)
+        val h = savedPos / 3_600_000L
+        val m = (savedPos % 3_600_000L) / 60_000L
+        val s = (savedPos % 60_000L) / 1_000L
+        val posString = if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+        android.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.resume_title))
+            .setMessage(getString(R.string.resume_message, posString))
+            .setPositiveButton(getString(R.string.resume_yes)) { _, _ ->
+                player?.seekTo(savedPos)
+                showOsd()
+            }
+            .setNegativeButton(getString(R.string.resume_no)) { _, _ ->
+                prefs.clearPlaybackPosition(currentStreamUrl)
+            }
+            .show()
     }
 
     // -------------------------------------------------------------------------
@@ -352,8 +368,8 @@ class PlayerActivity : FragmentActivity() {
             val h = nextDuration / 3600
             val m = (nextDuration % 3600) / 60
             val s = nextDuration % 60
-            tvEventTime.text = if (h > 0) "Duration: %d:%02d:%02d".format(h, m, s)
-                               else "Duration: %d:%02d".format(m, s)
+            val durStr = if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
+            tvEventTime.text = getString(R.string.duration_label, durStr)
         }
 
         isSeekable = false
@@ -373,6 +389,63 @@ class PlayerActivity : FragmentActivity() {
             exo.playWhenReady = true
         }
         showOsd()
+    }
+
+    // -------------------------------------------------------------------------
+    // Channel up / down
+    // -------------------------------------------------------------------------
+
+    private fun changeChannel(delta: Int) {
+        if (channelRefs.isEmpty()) return
+        val newIndex = (channelIndex + delta).coerceIn(0, channelRefs.lastIndex)
+        if (newIndex == channelIndex) return
+        channelIndex = newIndex
+        val newRef = channelRefs[newIndex]
+        val newName = channelNamesList.getOrElse(newIndex) { "" }
+        val newUrl = prefs.streamUrl(newRef)
+        currentStreamUrl = newUrl
+
+        prefs.saveLastChannel(newRef, newName)
+
+        // Update OSD header
+        tvChannelName.text = newName
+        tvEventTitle.text = ""
+        tvEventTime.text = ""
+        tvNextEvent.text = ""
+
+        // Update picon
+        Glide.with(this)
+            .load(prefs.piconFallbackUrl(newRef))
+            .error(
+                Glide.with(this).load(prefs.piconFallbackUrlShort(newRef))
+                    .error(
+                        Glide.with(this).load(prefs.piconFallbackUrlByName(newName))
+                            .error(R.drawable.ic_channel_placeholder)
+                    )
+            )
+            .into(ivChannelLogo)
+
+        // Swap media item in the existing player
+        player?.also { exo ->
+            val mediaItem = MediaItem.Builder()
+                .setUri(newUrl)
+                .setMimeType(androidx.media3.common.MimeTypes.VIDEO_MP2T)
+                .build()
+            exo.stop()
+            exo.setMediaItem(mediaItem)
+            exo.prepare()
+            exo.playWhenReady = true
+        }
+
+        loadEpgInfo(newRef)
+        showOsd()
+
+        // Fire zap on receiver in background (if user enabled it)
+        if (prefs.zapOnChannelChange) {
+            lifecycleScope.launch {
+                try { repository.zap(newRef) } catch (_: Exception) {}
+            }
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -470,14 +543,22 @@ class PlayerActivity : FragmentActivity() {
         val targetPos = currentPos + deltaMs
         if (deltaMs > 0) {
             // Jump forward only if the buffer extends far enough
-            if (exo.bufferedPosition < targetPos) return
+            if (exo.bufferedPosition < targetPos) {
+                showLiveSeekUnavailable()
+                return
+            }
         } else {
             // Jump backward only if we stay within the available window
-            if (targetPos < 0) return
+            if (targetPos < 0) {
+                showLiveSeekUnavailable()
+                return
+            }
         }
         exo.seekTo(targetPos)
         showOsd()
-        val label = if (deltaMs > 0) "+${deltaMs / 1000}s" else "${deltaMs / 1000}s"
+        val secs = (deltaMs / 1000L).toInt()
+        val label = if (secs > 0) getString(R.string.seek_delta_forward, secs)
+                    else getString(R.string.seek_delta_backward, secs)
         tvLiveSeekHint.text = label
         tvLiveSeekHint.visibility = View.VISIBLE
         handler.removeCallbacks(clearLiveSeekHintRunnable)
@@ -492,7 +573,9 @@ class PlayerActivity : FragmentActivity() {
         exo.seekTo(newPos)
         showOsd()
         updateSeekBar()
-        val label = if (deltaMs > 0) "+${deltaMs / 1000}s" else "${deltaMs / 1000}s"
+        val secs = (deltaMs / 1000L).toInt()
+        val label = if (secs > 0) getString(R.string.seek_delta_forward, secs)
+                    else getString(R.string.seek_delta_backward, secs)
         tvSeekHint.text = label
         handler.removeCallbacks(clearSeekHintRunnable)
         handler.postDelayed(clearSeekHintRunnable, 1_500L)
@@ -505,6 +588,14 @@ class PlayerActivity : FragmentActivity() {
         val s = totalSec % 60
         return if (h > 0) "%d:%02d:%02d".format(h, m, s)
         else "%d:%02d".format(m, s)
+    }
+
+    private fun showLiveSeekUnavailable() {
+        tvLiveSeekHint.text = getString(R.string.live_seek_unavailable)
+        tvLiveSeekHint.visibility = View.VISIBLE
+        showOsd()
+        handler.removeCallbacks(clearLiveSeekHintRunnable)
+        handler.postDelayed(clearLiveSeekHintRunnable, 2_000L)
     }
 
     // -------------------------------------------------------------------------
@@ -557,6 +648,22 @@ class PlayerActivity : FragmentActivity() {
                 player?.isCurrentMediaItemLive == true -> { seekInBuffer(15_000L); true }
                 else -> super.onKeyDown(keyCode, event)
             }
+            // Channel up (D-pad Up or CH+ key) → previous channel in list
+            KeyEvent.KEYCODE_DPAD_UP,
+            KeyEvent.KEYCODE_CHANNEL_UP -> {
+                if (channelRefs.isNotEmpty() && !isSeekable && playlistUrls.isEmpty()) {
+                    changeChannel(-1)
+                    true
+                } else super.onKeyDown(keyCode, event)
+            }
+            // Channel down (D-pad Down or CH- key) → next channel in list
+            KeyEvent.KEYCODE_DPAD_DOWN,
+            KeyEvent.KEYCODE_CHANNEL_DOWN -> {
+                if (channelRefs.isNotEmpty() && !isSeekable && playlistUrls.isEmpty()) {
+                    changeChannel(+1)
+                    true
+                } else super.onKeyDown(keyCode, event)
+            }
             KeyEvent.KEYCODE_BACK -> {
                 if (osdOverlay.visibility == View.VISIBLE) {
                     hideOsd()
@@ -580,13 +687,13 @@ class PlayerActivity : FragmentActivity() {
 
     private fun showPlayerOptionsMenu() {
         val options = arrayOf(
-            "Audio Track",
-            "Subtitles",
-            "Aspect Ratio  [${resizeModeLabels[resizeModeIndex]}]",
-            "Sleep Timer"
+            getString(R.string.audio_track_title),
+            getString(R.string.subtitle_track_title),
+            getString(R.string.player_options_aspect, resizeModeLabels[resizeModeIndex]),
+            getString(R.string.sleep_timer_title)
         )
         AlertDialog.Builder(this)
-            .setTitle("Player Options")
+            .setTitle(getString(R.string.player_options_title))
             .setItems(options) { _, which ->
                 when (which) {
                     0 -> showAudioTrackDialog()
@@ -691,7 +798,10 @@ class PlayerActivity : FragmentActivity() {
         val mins = intArrayOf(0, 15, 30, 60, 90)
         val opts = arrayOf(
             getString(R.string.sleep_timer_off),
-            "15 min", "30 min", "60 min", "90 min"
+            getString(R.string.sleep_timer_minutes, 15),
+            getString(R.string.sleep_timer_minutes, 30),
+            getString(R.string.sleep_timer_minutes, 60),
+            getString(R.string.sleep_timer_minutes, 90)
         )
         AlertDialog.Builder(this)
             .setTitle(getString(R.string.sleep_timer_title))
@@ -700,7 +810,7 @@ class PlayerActivity : FragmentActivity() {
                 if (mins[which] > 0) {
                     val r = Runnable { finish() }.also { sleepTimerRunnable = it }
                     handler.postDelayed(r, mins[which] * 60_000L)
-                    btnSleep.text = "${mins[which]}m"
+                    btnSleep.text = getString(R.string.sleep_timer_btn_active, mins[which])
                     Toast.makeText(this, getString(R.string.sleep_timer_set, mins[which]), Toast.LENGTH_SHORT).show()
                 } else {
                     sleepTimerRunnable = null
