@@ -12,8 +12,9 @@ android {
         applicationId = "com.enigma2.firetv"
         minSdk = 25
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.0.4"
+        versionCode = 10
+        versionName = "1.5.0"
+        buildConfigField("boolean", "ENABLE_EPG_ASSIGN", "false")
     }
 
     buildTypes {

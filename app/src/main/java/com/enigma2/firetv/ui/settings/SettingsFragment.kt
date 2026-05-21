@@ -1,11 +1,16 @@
 package com.enigma2.firetv.ui.settings
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.widget.CheckBox
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.EditTextPreference
+import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.SwitchPreferenceCompat
@@ -14,8 +19,11 @@ import com.enigma2.firetv.R
 import com.enigma2.firetv.data.api.ApiClient
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
+import com.enigma2.firetv.ui.player.PlaybackRouter
 import com.enigma2.firetv.util.NetworkUtils
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Settings screen allowing the user to change Enigma2 receiver connection details.
@@ -103,6 +111,23 @@ class SettingsFragment : PreferenceFragmentCompat() {
             true
         }
 
+        findPreference<Preference>("remote_control")?.setOnPreferenceClickListener {
+            startActivity(Intent(requireContext(),
+                com.enigma2.firetv.ui.remote.RemoteControlActivity::class.java))
+            true
+        }
+
+        findPreference<Preference>("send_message")?.setOnPreferenceClickListener {
+            com.enigma2.firetv.ui.messages.SendMessageDialog.show(requireContext(), this)
+            true
+        }
+
+        findPreference<Preference>("receiver_settings")?.setOnPreferenceClickListener {
+            startActivity(Intent(requireContext(),
+                com.enigma2.firetv.ui.settings.receiver.ReceiverSettingsActivity::class.java))
+            true
+        }
+
         findPreference<Preference>("box_info")?.setOnPreferenceClickListener {
             showBoxInfo()
             true
@@ -133,6 +158,54 @@ class SettingsFragment : PreferenceFragmentCompat() {
                 prefs.zapOnChannelChange = newValue as Boolean
                 true
             }
+        }
+
+        // v1.2.0 Phase 5: external player prefs
+        findPreference<ListPreference>("player_mode")?.apply {
+            value = prefs.playerMode
+            setOnPreferenceChangeListener { _, newValue ->
+                prefs.playerMode = newValue as String
+                true
+            }
+        }
+        findPreference<ListPreference>("preferred_external_package")?.apply {
+            val installed = PlaybackRouter.installedExternals(requireContext())
+            val labels = mutableListOf(getString(R.string.player_any_external))
+            val values = mutableListOf("")
+            installed.forEach { pkg ->
+                labels += PlaybackRouter.pkgLabel(pkg)
+                values += pkg
+            }
+            entries = labels.toTypedArray()
+            entryValues = values.toTypedArray()
+            // If the saved value isn't in the list (e.g. manually typed before),
+            // fall back to "Any" so the ListPreference doesn't show a blank selection.
+            val saved = prefs.preferredExternalPackage
+            value = if (saved.isBlank() || entryValues.contains(saved)) saved else ""
+            summaryProvider = ListPreference.SimpleSummaryProvider.getInstance()
+            setOnPreferenceChangeListener { _, newValue ->
+                prefs.preferredExternalPackage = newValue as String
+                true
+            }
+        }
+
+        // v1.5.0: Picture-in-Picture
+        findPreference<SwitchPreferenceCompat>("pip_enabled")?.apply {
+            isChecked = prefs.pipEnabled
+            setOnPreferenceChangeListener { _, newValue ->
+                prefs.pipEnabled = newValue as Boolean
+                true
+            }
+        }
+
+        // v1.2.0 Phase 6: backup export/import
+        findPreference<Preference>("export_profiles")?.setOnPreferenceClickListener {
+            showExportDialog()
+            true
+        }
+        findPreference<Preference>("import_profiles")?.setOnPreferenceClickListener {
+            openFilePicker()
+            true
         }
 
         findPreference<Preference>("about_version")?.summary =
@@ -257,5 +330,105 @@ class SettingsFragment : PreferenceFragmentCompat() {
             .joinToString(", ") { "${it.key}=${it.value}" }
         is List<*> -> item.joinToString(", ") { stringifyItem(it) }
         else -> item.toString()
+    }
+
+    // ── v1.2.0 Phase 6: profile export/import ────────────────────────────────
+
+    private fun showExportDialog() {
+        val ctx = requireContext()
+        val pad = (ctx.resources.displayMetrics.density * 16).toInt()
+        val cb = CheckBox(ctx).apply {
+            text = getString(R.string.backup_export_include_passwords)
+            setPadding(pad, pad, pad, pad)
+        }
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.pref_title_export_profiles)
+            .setView(cb)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                doExport(cb.isChecked)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun doExport(includePasswords: Boolean) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val json = prefs.exportProfilesJson(includePasswords)
+            val ts = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.US)
+                .format(java.util.Date())
+            val filename = "enigma2firetv_profiles_$ts.json"
+            val ok = withContext(Dispatchers.IO) {
+                writeToDownloads(requireContext(), filename, json)
+            }
+            Toast.makeText(requireContext(),
+                if (ok) getString(R.string.backup_export_ok) else getString(R.string.backup_export_failed),
+                Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun writeToDownloads(ctx: android.content.Context, name: String, content: String): Boolean {
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                val resolver = ctx.contentResolver
+                val values = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name)
+                    put(android.provider.MediaStore.Downloads.MIME_TYPE, "application/json")
+                    put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
+                        android.os.Environment.DIRECTORY_DOWNLOADS + "/Enigma2FireTV")
+                }
+                val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+                    ?: return false
+                resolver.openOutputStream(uri)?.use { it.write(content.toByteArray()) }
+                true
+            } else {
+                @Suppress("DEPRECATION")
+                val dir = java.io.File(
+                    android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+                    "Enigma2FireTV"
+                ).apply { mkdirs() }
+                java.io.File(dir, name).writeText(content)
+                true
+            }
+        } catch (_: Exception) { false }
+    }
+
+    private companion object {
+        const val REQUEST_IMPORT_FILE = 7001
+    }
+
+    private fun openFilePicker() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+        }
+        @Suppress("DEPRECATION")
+        startActivityForResult(intent, REQUEST_IMPORT_FILE)
+    }
+
+    @Suppress("OVERRIDE_DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_IMPORT_FILE && resultCode == android.app.Activity.RESULT_OK) {
+            val uri = data?.data ?: return
+            viewLifecycleOwner.lifecycleScope.launch {
+                val json = withContext(Dispatchers.IO) {
+                    runCatching {
+                        requireContext().contentResolver.openInputStream(uri)?.use {
+                            it.bufferedReader().readText()
+                        }
+                    }.getOrNull()
+                }
+                if (json.isNullOrBlank()) {
+                    Toast.makeText(requireContext(), R.string.backup_import_failed, Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+                val count = prefs.importProfilesJson(json)
+                val msg = when {
+                    count == 0 -> getString(R.string.backup_import_zero)
+                    else -> getString(R.string.backup_import_ok, count)
+                }
+                Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }

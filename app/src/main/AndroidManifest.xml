@@ -40,7 +40,8 @@
         <activity
             android:name=".ui.player.PlayerActivity"
             android:exported="false"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|smallestScreenSize|screenLayout"
+            android:supportsPictureInPicture="true"
             android:theme="@style/Theme.Enigma2FireTV.Player"
             android:launchMode="singleTop" />
 
@@ -68,5 +69,57 @@
             android:exported="false"
             android:theme="@style/Theme.Enigma2FireTV.Settings" />
 
+        <!-- v1.1.0: Virtual remote control (launched from Settings) -->
+        <activity
+            android:name=".ui.remote.RemoteControlActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Enigma2FireTV.Settings" />
+
+        <!-- v1.1.0 Phase 1: Receiver Settings hub (13 sub-screens) -->
+        <activity
+            android:name=".ui.settings.receiver.ReceiverSettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Enigma2FireTV.Settings" />
+
+        <!-- Standalone IPTV player (no Enigma2 required) -->
+        <activity
+            android:name=".ui.iptv.IptvActivity"
+            android:exported="false"
+            android:configChanges="keyboard|keyboardHidden|navigation"
+            android:theme="@style/Theme.Enigma2FireTV" />
+
+        <!-- v1.1.0: EPG reminder alarm receiver -->
+        <receiver
+            android:name=".service.ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.enigma2.firetv.ACTION_REMINDER_WATCH" />
+                <action android:name="com.enigma2.firetv.ACTION_REMINDER_SNOOZE" />
+            </intent-filter>
+        </receiver>
+
     </application>
+
+    <!-- v1.2.0 Phase 5: visibility of external video player apps (API 30+) -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="video/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/x-mpegURL" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:mimeType="application/vnd.apple.mpegurl" />
+        </intent>
+        <package android:name="org.videolan.vlc" />
+        <package android:name="com.mxtech.videoplayer.ad" />
+        <package android:name="com.mxtech.videoplayer.pro" />
+        <package android:name="org.xbmc.kodi" />
+        <package android:name="org.xbmc.kodi19" />
+        <package android:name="org.xbmc.kodi20" />
+    </queries>
+
 </manifest>

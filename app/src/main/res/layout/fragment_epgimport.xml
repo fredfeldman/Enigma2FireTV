@@ -34,6 +34,18 @@
             android:textSize="13sp"
             android:padding="8dp"
             android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btn_epi_run_import"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_button"
+            android:text="@string/epgimport_run"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:padding="8dp"
+            android:layout_marginStart="8dp"
+            android:focusable="true" />
     </LinearLayout>
 
     <TextView

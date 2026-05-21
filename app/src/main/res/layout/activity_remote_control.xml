@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Virtual remote control. Ported from Enigma2Android v1.5.1
+  (res/layout/activity_remote_control.xml). Buttons map 1:1 to Linux input
+  keycodes via the RemoteControlActivity mapping. Designed for D-pad use:
+  every button is focusable.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_dark">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:text="@string/remote_title"
+        android:textColor="@color/text_primary"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <!-- D-pad -->
+            <TextView style="@style/RemoteSection" android:text="@string/remote_grp_nav" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <Button android:id="@+id/btn_up" style="@style/RemoteKey" android:text="@string/remote_up" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <Button android:id="@+id/btn_left"  style="@style/RemoteKey" android:text="@string/remote_left" />
+                    <Button android:id="@+id/btn_ok"    style="@style/RemoteKey" android:text="@string/remote_ok" />
+                    <Button android:id="@+id/btn_right" style="@style/RemoteKey" android:text="@string/remote_right" />
+                </LinearLayout>
+
+                <Button android:id="@+id/btn_down" style="@style/RemoteKey" android:text="@string/remote_down" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="8dp">
+
+                <Button android:id="@+id/btn_back" style="@style/RemoteKey" android:text="@string/remote_back" />
+                <Button android:id="@+id/btn_exit" style="@style/RemoteKey" android:text="@string/remote_exit" />
+                <Button android:id="@+id/btn_menu" style="@style/RemoteKey" android:text="@string/remote_menu" />
+                <Button android:id="@+id/btn_info" style="@style/RemoteKey" android:text="@string/remote_info" />
+                <Button android:id="@+id/btn_epg"  style="@style/RemoteKey" android:text="@string/remote_epg" />
+            </LinearLayout>
+
+            <!-- Vol & Channel -->
+            <TextView style="@style/RemoteSection" android:text="@string/remote_grp_volume" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal">
+
+                <Button android:id="@+id/btn_vol_down" style="@style/RemoteKey" android:text="@string/remote_vol_down" />
+                <Button android:id="@+id/btn_mute"     style="@style/RemoteKey" android:text="@string/remote_mute" />
+                <Button android:id="@+id/btn_vol_up"   style="@style/RemoteKey" android:text="@string/remote_vol_up" />
+                <Button android:id="@+id/btn_ch_down"  style="@style/RemoteKey" android:text="@string/remote_ch_down" />
+                <Button android:id="@+id/btn_ch_up"    style="@style/RemoteKey" android:text="@string/remote_ch_up" />
+            </LinearLayout>
+
+            <!-- Coloured -->
+            <TextView style="@style/RemoteSection" android:text="@string/remote_grp_color" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal">
+
+                <Button android:id="@+id/btn_red"    style="@style/RemoteKey" android:backgroundTint="#C62828" android:text="@string/remote_red" />
+                <Button android:id="@+id/btn_green"  style="@style/RemoteKey" android:backgroundTint="#2E7D32" android:text="@string/remote_green" />
+                <Button android:id="@+id/btn_yellow" style="@style/RemoteKey" android:backgroundTint="#F9A825" android:text="@string/remote_yellow" />
+                <Button android:id="@+id/btn_blue"   style="@style/RemoteKey" android:backgroundTint="#1565C0" android:text="@string/remote_blue" />
+            </LinearLayout>
+
+            <!-- Numbers -->
+            <TextView style="@style/RemoteSection" android:text="@string/remote_grp_numbers" />
+
+            <GridLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:columnCount="3">
+
+                <Button android:id="@+id/btn_1" style="@style/RemoteKey" android:text="1" />
+                <Button android:id="@+id/btn_2" style="@style/RemoteKey" android:text="2" />
+                <Button android:id="@+id/btn_3" style="@style/RemoteKey" android:text="3" />
+                <Button android:id="@+id/btn_4" style="@style/RemoteKey" android:text="4" />
+                <Button android:id="@+id/btn_5" style="@style/RemoteKey" android:text="5" />
+                <Button android:id="@+id/btn_6" style="@style/RemoteKey" android:text="6" />
+                <Button android:id="@+id/btn_7" style="@style/RemoteKey" android:text="7" />
+                <Button android:id="@+id/btn_8" style="@style/RemoteKey" android:text="8" />
+                <Button android:id="@+id/btn_9" style="@style/RemoteKey" android:text="9" />
+                <Space android:layout_width="0dp" android:layout_height="0dp" />
+                <Button android:id="@+id/btn_0" style="@style/RemoteKey" android:text="0" />
+                <Space android:layout_width="0dp" android:layout_height="0dp" />
+            </GridLayout>
+
+            <!-- Special / playback -->
+            <TextView style="@style/RemoteSection" android:text="@string/remote_grp_special" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal">
+
+                <Button android:id="@+id/btn_audio" style="@style/RemoteKey" android:text="@string/remote_audio" />
+                <Button android:id="@+id/btn_subs"  style="@style/RemoteKey" android:text="@string/remote_subtitle" />
+                <Button android:id="@+id/btn_text"  style="@style/RemoteKey" android:text="@string/remote_text" />
+                <Button android:id="@+id/btn_help"  style="@style/RemoteKey" android:text="@string/remote_help" />
+                <Button android:id="@+id/btn_power" style="@style/RemoteKey" android:text="@string/remote_power" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="8dp">
+
+                <Button android:id="@+id/btn_play"   style="@style/RemoteKey" android:text="@string/remote_play" />
+                <Button android:id="@+id/btn_pause"  style="@style/RemoteKey" android:text="@string/remote_pause" />
+                <Button android:id="@+id/btn_stop"   style="@style/RemoteKey" android:text="@string/remote_stop" />
+                <Button android:id="@+id/btn_record" style="@style/RemoteKey" android:text="@string/remote_record" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

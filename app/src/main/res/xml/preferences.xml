@@ -76,6 +76,26 @@
 
     </PreferenceCategory>
 
+    <!-- v1.1.0: Receiver controls -->
+    <PreferenceCategory android:title="@string/pref_category_receiver_controls">
+
+        <Preference
+            android:key="remote_control"
+            android:title="@string/pref_title_remote_control"
+            android:summary="@string/pref_summary_remote_control" />
+
+        <Preference
+            android:key="send_message"
+            android:title="@string/pref_title_send_message"
+            android:summary="@string/pref_summary_send_message" />
+
+        <Preference
+            android:key="receiver_settings"
+            android:title="@string/pref_title_receiver_settings"
+            android:summary="@string/pref_summary_receiver_settings" />
+
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/pref_category_appearance">
 
         <SwitchPreferenceCompat
@@ -99,6 +119,42 @@
             android:title="@string/pref_title_zap_on_change"
             android:summary="@string/pref_summary_zap_on_change"
             android:defaultValue="true" />
+
+        <!-- v1.2.0 Phase 5: external player routing -->
+        <ListPreference
+            android:key="player_mode"
+            android:title="@string/pref_title_player_mode"
+            android:summary="@string/pref_summary_player_mode"
+            android:entries="@array/player_mode_labels"
+            android:entryValues="@array/player_mode_values"
+            android:defaultValue="internal" />
+
+        <ListPreference
+            android:key="preferred_external_package"
+            android:title="@string/pref_title_preferred_external"
+            android:defaultValue="" />
+
+        <!-- v1.5.0: Picture-in-Picture -->
+        <SwitchPreferenceCompat
+            android:key="pip_enabled"
+            android:title="@string/pref_title_pip"
+            android:summary="@string/pref_summary_pip"
+            android:defaultValue="true" />
+
+    </PreferenceCategory>
+
+    <!-- v1.2.0 Phase 6: profile backup / import -->
+    <PreferenceCategory android:title="@string/pref_category_backup">
+
+        <Preference
+            android:key="export_profiles"
+            android:title="@string/pref_title_export_profiles"
+            android:summary="@string/pref_summary_export_profiles" />
+
+        <Preference
+            android:key="import_profiles"
+            android:title="@string/pref_title_import_profiles"
+            android:summary="@string/pref_summary_import_profiles" />
 
     </PreferenceCategory>
 

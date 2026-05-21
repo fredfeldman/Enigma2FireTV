@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<FireTvManifest version="1.0" appName="Enigma2FireTV">
+    <Images>
+        <Image type="AppIcon" path="generated\AppIcon_1280x720.png" exportedPath="" />
+        <Image type="AppIconSmall" path="generated\AppIconSmall_320x320.png" exportedPath="" />
+        <Image type="Banner" path="generated\Banner_2560x1440.png" exportedPath="" />
+        <Image type="Background" path="generated\Background_1920x1080.png" exportedPath="" />
+        <Image type="FeaturedBackground" path="generated\FeaturedBackground_1920x1080.png" exportedPath="" />
+        <Image type="FeaturedLogo" path="generated\FeaturedLogo_320x180.png" exportedPath="" />
+        <Image type="SplashScreen" path="generated\SplashScreen_1920x1080.png" exportedPath="" />
+        <Image type="ContentTile" path="generated\ContentTile_268x268.png" exportedPath="" />
+        <Image type="ContentTileWide" path="generated\ContentTileWide_548x452.png" exportedPath="" />
+        <Image type="Screenshot1" path="generated\Screenshot1_1920x1080.png" exportedPath="" />
+        <Image type="Screenshot2" path="generated\Screenshot2_1920x1080.png" exportedPath="" />
+        <Image type="Screenshot3" path="generated\Screenshot3_1920x1080.png" exportedPath="" />
+    </Images>
+</FireTvManifest>

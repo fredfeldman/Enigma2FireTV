@@ -7,6 +7,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.EpgEvent
+import com.enigma2.firetv.data.prefs.EpgCacheStore
+import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
 import com.enigma2.firetv.util.ApiErrors
 import kotlinx.coroutines.launch
@@ -14,6 +16,8 @@ import kotlinx.coroutines.launch
 class EpgViewModel(app: Application) : AndroidViewModel(app) {
 
     private val repository = Enigma2Repository()
+    private val cache = EpgCacheStore(app)
+    private val prefs = ReceiverPreferences(app)
 
     /** Full multi-service EPG for the current bouquet, keyed by serviceRef. */
     private val _epgMap = MutableLiveData<Map<String, List<EpgEvent>>>(emptyMap())
@@ -29,21 +33,64 @@ class EpgViewModel(app: Application) : AndroidViewModel(app) {
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
+    /**
+     * v1.1.0 cache-fallback signal. When the live fetch fails and we serve
+     * the cached snapshot instead, this exposes the cache age (minutes) to
+     * the UI so it can render the "Showing cached EPG (N min old)" banner.
+     * Value is `-1` when fresh data is on screen.
+     */
+    private val _cacheBannerAgeMin = MutableLiveData<Long>(-1L)
+    val cacheBannerAgeMin: LiveData<Long> = _cacheBannerAgeMin
+
     fun loadMultiEpg(bouquetRef: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
             try {
                 val events = repository.getMultiEpg(bouquetRef)
-                // Group by service reference
-                _epgMap.value = events.groupBy { it.serviceRef }
+                if (events.isEmpty()) {
+                    // Empty live result — try cache as a recovery aid.
+                    val cached = cache.load(prefs.activeDeviceId, bouquetRef)
+                    if (!cached.isNullOrEmpty()) {
+                        _epgMap.value = cached.groupBy { it.serviceRef }
+                        _cacheBannerAgeMin.value =
+                            cache.ageMinutes(prefs.activeDeviceId, bouquetRef)
+                    } else {
+                        _epgMap.value = emptyMap()
+                        _cacheBannerAgeMin.value = -1L
+                    }
+                } else {
+                    _epgMap.value = events.groupBy { it.serviceRef }
+                    cache.save(prefs.activeDeviceId, bouquetRef, events)
+                    _cacheBannerAgeMin.value = -1L
+                }
             } catch (e: Exception) {
-                _error.value = getApplication<Application>().getString(
-                    R.string.vm_error_epg, ApiErrors.userMessage(getApplication(), e)
-                )
+                val cached = cache.load(prefs.activeDeviceId, bouquetRef)
+                if (!cached.isNullOrEmpty()) {
+                    _epgMap.value = cached.groupBy { it.serviceRef }
+                    _cacheBannerAgeMin.value =
+                        cache.ageMinutes(prefs.activeDeviceId, bouquetRef)
+                } else {
+                    _error.value = getApplication<Application>().getString(
+                        R.string.vm_error_epg, ApiErrors.userMessage(getApplication(), e)
+                    )
+                    _cacheBannerAgeMin.value = -1L
+                }
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    /**
+     * v1.1.0 manual EPG refresh: triggers the receiver's EPG scan (no-op if
+     * the EPGRefresh plugin is missing) then reloads the bouquet.
+     */
+    fun refreshEpg(bouquetRef: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            runCatching { repository.triggerEpgRefresh() }
+            loadMultiEpg(bouquetRef)
         }
     }
 

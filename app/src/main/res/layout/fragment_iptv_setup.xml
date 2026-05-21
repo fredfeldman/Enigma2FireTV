@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:padding="48dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/iptv_setup_title"
+            android:textColor="@color/accent"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/iptv_setup_subtitle"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginBottom="32dp" />
+
+        <EditText
+            android:id="@+id/et_m3u_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/iptv_m3u_url_hint"
+            android:inputType="textUri"
+            android:textColor="@android:color/white"
+            android:textColorHint="@color/text_secondary"
+            android:layout_marginBottom="16dp"
+            android:focusable="true"
+            android:singleLine="true" />
+
+        <EditText
+            android:id="@+id/et_epg_url"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/iptv_epg_url_hint"
+            android:inputType="textUri"
+            android:textColor="@android:color/white"
+            android:textColorHint="@color/text_secondary"
+            android:layout_marginBottom="32dp"
+            android:focusable="true"
+            android:singleLine="true" />
+
+        <TextView
+            android:id="@+id/btn_iptv_load"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/iptv_load"
+            android:background="@drawable/bg_button"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:padding="14dp"
+            android:focusable="true" />
+
+        <ProgressBar
+            android:id="@+id/iptv_setup_loading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_iptv_setup_error"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/error"
+            android:textSize="14sp"
+            android:gravity="center"
+            android:layout_marginTop="16dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</ScrollView>

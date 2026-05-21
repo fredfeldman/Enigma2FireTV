@@ -406,6 +406,335 @@ class Enigma2Repository(private val context: Context? = null) {
     }
 
     // ------------------------------------------------------------------
+    // Receiver Settings (v1.1.0 port) — see SettingsXml for parsers.
+    //
+    // All helpers return null/empty on transport failure so callers can
+    // disable the corresponding sub-screen on 404.
+    // ------------------------------------------------------------------
+
+    suspend fun probeCapabilities(): com.enigma2.firetv.data.model.settings.ReceiverCapabilities =
+        withContext(Dispatchers.IO) {
+            suspend fun ok(call: suspend () -> retrofit2.Response<okhttp3.ResponseBody>): Boolean = try {
+                call().isSuccessful
+            } catch (_: Exception) { false }
+            com.enigma2.firetv.data.model.settings.ReceiverCapabilities(
+                hasParental    = ok { ApiClient.service.getProtectionSettings() },
+                hasTranscoding = ok { ApiClient.service.getTranscodingConfig() },
+                hasConfigTree  = ok { ApiClient.service.getConfigSections() },
+                hasWol         = ok { ApiClient.service.getWolSetup() }
+            )
+        }
+
+    suspend fun getStatusInfo(): com.enigma2.firetv.data.model.settings.StatusInfo? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getStatusInfo().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseStatusInfo(it) }
+            }.getOrNull()
+        }
+
+    suspend fun getPowerState(): com.enigma2.firetv.data.model.settings.PowerState? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getPowerState().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parsePowerState(it) }
+            }.getOrNull()
+        }
+
+    suspend fun setPowerState(newState: Int): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.setPowerState(newState).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getSleepTimer(): com.enigma2.firetv.data.model.settings.SleepTimer? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getSleepTimer().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseSleepTimer(it) }
+            }.getOrNull()
+        }
+
+    suspend fun setSleepTimer(minutes: Int, action: String, enabled: Boolean): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.setSleepTimer(
+                    time = minutes,
+                    action = action,
+                    enabled = if (enabled) "True" else "False"
+                ).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    suspend fun getVolume(): com.enigma2.firetv.data.model.settings.VolumeInfo? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getVolume().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseVolume(it) }
+            }.getOrNull()
+        }
+
+    suspend fun setVolume(level: Int): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.setVolume("set${level.coerceIn(0, 100)}").isSuccessful }
+            .getOrDefault(false)
+    }
+
+    suspend fun toggleMute(): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.setVolume("mute").isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getAllSettings(): Map<String, String> = withContext(Dispatchers.IO) {
+        runCatching {
+            ApiClient.service.getAllSettings().body()?.byteStream()
+                ?.use { com.enigma2.firetv.data.api.SettingsXml.parseAllSettings(it) }
+                ?: emptyMap()
+        }.getOrDefault(emptyMap())
+    }
+
+    suspend fun getConfigSections(): List<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            ApiClient.service.getConfigSections().body()?.byteStream()
+                ?.use { com.enigma2.firetv.data.api.SettingsXml.parseConfigSections(it) }
+                ?: emptyList()
+        }.getOrDefault(emptyList())
+    }
+
+    suspend fun getConfigSection(name: String): com.enigma2.firetv.data.model.settings.ConfigSection =
+        withContext(Dispatchers.IO) {
+            val base = com.enigma2.firetv.data.api.ApiClient.baseUrl.trimEnd('/')
+            val url = "$base/api/config/$name"
+            runCatching {
+                ApiClient.service.getConfigSection(url).body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseConfigSection(name, it) }
+                    ?: com.enigma2.firetv.data.model.settings.ConfigSection(name, emptyList())
+            }.getOrDefault(com.enigma2.firetv.data.model.settings.ConfigSection(name, emptyList()))
+        }
+
+    suspend fun saveConfig(key: String, value: String): Pair<Boolean, String?> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.saveConfig(key, value).body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseSaveAck(it) }
+                    ?: (true to null)
+            }.getOrDefault(false to "transport error")
+        }
+
+    suspend fun setWebConfig(params: Map<String, String>): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.setWebConfig(params).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getParentControlList(): List<com.enigma2.firetv.data.model.settings.ProtectedService> =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getParentControlList().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseProtectedServices(it) }
+                    ?: emptyList()
+            }.getOrDefault(emptyList())
+        }
+
+    suspend fun getProtectionSettings(): Pair<Boolean, Boolean> = withContext(Dispatchers.IO) {
+        runCatching {
+            ApiClient.service.getProtectionSettings().body()?.byteStream()
+                ?.use { com.enigma2.firetv.data.api.SettingsXml.parseProtectionSettings(it) }
+                ?: (false to false)
+        }.getOrDefault(false to false)
+    }
+
+    suspend fun getRecordingLocations(): com.enigma2.firetv.data.model.settings.RecordingLocations? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val current = ApiClient.service.getCurrentLocation().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseCurrentLocation(it) }
+                val list = ApiClient.service.getLocations().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseLocations(it) } ?: emptyList()
+                com.enigma2.firetv.data.model.settings.RecordingLocations(current, list)
+            }.getOrNull()
+        }
+
+    suspend fun setCurrentLocation(location: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.setCurrentLocation(location).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun addLocation(dirname: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.addLocation(dirname).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun removeLocation(dirname: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.removeLocation(dirname).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getTunerSignal(): com.enigma2.firetv.data.model.settings.TunerSignal? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getTunerSignal().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseTunerSignal(it) }
+            }.getOrNull()
+        }
+
+    suspend fun getWolSetup(): com.enigma2.firetv.data.model.settings.WolSetup? =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.getWolSetup().body()?.byteStream()
+                    ?.use { com.enigma2.firetv.data.api.SettingsXml.parseWolSetup(it) }
+            }.getOrNull()
+        }
+
+    suspend fun setWolSetup(params: Map<String, String>): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.setWolSetup(params).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getTranscodingConfig(): Map<String, String> = withContext(Dispatchers.IO) {
+        runCatching {
+            ApiClient.service.getTranscodingConfig().body()?.byteStream()
+                ?.use { com.enigma2.firetv.data.api.SettingsXml.parseAllSettings(it) }
+                ?: emptyMap()
+        }.getOrDefault(emptyMap())
+    }
+
+    suspend fun setTranscodingConfig(params: Map<String, String>): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { ApiClient.service.setTranscodingConfig(params).isSuccessful }.getOrDefault(false)
+        }
+
+    // ---- v1.0.7: Remote control + messaging ----
+
+    suspend fun sendRemoteCommand(commandCode: Int): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.sendRemoteCommand(commandCode).isSuccessful }
+            .getOrDefault(false)
+    }
+
+    suspend fun sendMessage(text: String, type: Int = 1, timeoutSeconds: Int = 10): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching { ApiClient.service.sendMessage(text, type, timeoutSeconds).isSuccessful }
+                .getOrDefault(false)
+        }
+
+    // ---- v1.0.8: Recording management ----
+
+    suspend fun renameMovie(sRef: String, newName: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.renameMovie(sRef, newName).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun moveMovie(sRef: String, newDir: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.moveMovie(sRef, newDir).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun updateMovieTags(sRef: String, add: List<String>?, remove: List<String>?): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.movieTags(
+                    sRef = sRef,
+                    add = add?.joinToString(" ")?.takeIf { it.isNotBlank() },
+                    del = remove?.joinToString(" ")?.takeIf { it.isNotBlank() }
+                ).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    suspend fun getMovieTags(): List<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            val body = ApiClient.service.getTags().body()?.string().orEmpty()
+            val arr = org.json.JSONObject(body).optJSONArray("tags")
+                ?: return@runCatching emptyList<String>()
+            (0 until arr.length()).map { arr.optString(it) }.filter { it.isNotBlank() }
+        }.getOrDefault(emptyList())
+    }
+
+    // ---- v1.1.0: Parental write / system / plugins / network ----
+
+    suspend fun parentalProtect(sRef: String, add: Boolean, type: String? = null): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.parentalProtect(
+                    sRef = sRef,
+                    action = if (add) "add" else "remove",
+                    type = type
+                ).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    suspend fun changeSetupPin(newPin: String, oldPin: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.changeSetupPin(newPin, oldPin).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getMountInfo(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.getMountInfo().body()?.string() }.getOrNull()
+    }
+
+    suspend fun getSmartInfo(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.getSmartInfo().body()?.string() }.getOrNull()
+    }
+
+    suspend fun getReceiverLog(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.getReceiverLog().body()?.string() }.getOrNull()
+    }
+
+    suspend fun listPlugins(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.listPlugins().body()?.string() }.getOrNull()
+    }
+
+    suspend fun installPlugin(pkg: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.installPlugin(pkg).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun removePlugin(pkg: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.removePlugin(pkg).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun getNetworkInfo(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.getNetworkInfo().body()?.string() }.getOrNull()
+    }
+
+    // ---- v1.1.1: EPG refresh ----
+
+    suspend fun refreshEpgForService(sRef: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.refreshEpgForService(sRef).isSuccessful }.getOrDefault(false)
+    }
+
+    suspend fun triggerEpgRefresh(): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.triggerEpgRefresh().isSuccessful }.getOrDefault(false)
+    }
+
+    // ---- v1.2.0 Phase 5: IPTV ref detection (constants live in companion object below) ----
+
+    // ---- v1.2.0 Phase 7: EPG Assign (gated by BuildConfig.ENABLE_EPG_ASSIGN) ----
+
+    /** Returns true when the companion epgassign plugin is reachable. */
+    suspend fun epgAssignPing(): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.epgAssignPing().isSuccessful }.getOrDefault(false)
+    }
+
+    /** Returns raw JSON string from epgassign/sources, or null on failure. */
+    suspend fun epgAssignSources(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.epgAssignSources().body()?.string() }.getOrNull()
+    }
+
+    /** Returns raw JSON string from epgassign/source?name=…, or null on failure. */
+    suspend fun epgAssignSource(name: String): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.epgAssignSource(name).body()?.string() }.getOrNull()
+    }
+
+    /** Returns raw JSON string from epgassign/mappings, or null on failure. */
+    suspend fun epgAssignMappings(): String? = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.epgAssignMappings().body()?.string() }.getOrNull()
+    }
+
+    /** Assigns a channel-id+source to a service reference. Returns true on success. */
+    suspend fun epgAssign(sRef: String, channelId: String, source: String, name: String): Boolean =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                ApiClient.service.epgAssign(sRef, channelId, source, name).isSuccessful
+            }.getOrDefault(false)
+        }
+
+    /** Removes any epgassign mapping for [sRef]. Returns true on success. */
+    suspend fun epgAssignUnassign(sRef: String): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.epgAssignUnassign(sRef).isSuccessful }.getOrDefault(false)
+    }
+
+    /** Triggers an EPGImport run. Returns true on success. */
+    suspend fun epgAssignImport(): Boolean = withContext(Dispatchers.IO) {
+        runCatching { ApiClient.service.epgAssignImport().isSuccessful }.getOrDefault(false)
+    }
+
+    // ------------------------------------------------------------------
     // EPGImport (read-only viewer)
     //
     // The EPGImport plugin doesn't expose its own HTTP API. We use OpenWebif's
@@ -449,6 +778,24 @@ class Enigma2Repository(private val context: Context? = null) {
 
         /** Standard install path for EPGImport `*.sources.xml` files. */
         private const val EPGIMPORT_DIR = "/etc/epgimport"
+
+        /** Service-reference type codes that represent IPTV / HTTP streams. */
+        val IPTV_REF_TYPES = setOf("4097", "5001", "5002", "5003", "8193")
+
+        /**
+         * For an IPTV-type service reference, extracts and URL-decodes the stream URL
+         * from the 11th colon-separated segment. Returns null for non-IPTV refs.
+         */
+        fun extractIptvUrl(sRef: String): String? {
+            val parts = sRef.split(":")
+            if (parts.size < 11) return null
+            if (parts[0] !in IPTV_REF_TYPES) return null
+            return try {
+                java.net.URLDecoder.decode(parts[10], "UTF-8")
+            } catch (_: Exception) { null }
+        }
+
+        fun isIptvRef(sRef: String): Boolean = extractIptvUrl(sRef) != null
 
         /** Derives the Enigma2 mode (0=TV, 1=Radio) from a bouquet service reference. */
         fun bouquetMode(ref: String): Int =

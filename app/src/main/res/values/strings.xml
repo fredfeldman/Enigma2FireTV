@@ -220,9 +220,12 @@
 
     <!-- EPGImport -->
     <string name="pref_title_epgimport">EPGImport sources</string>
-    <string name="pref_summary_epgimport">View configured EPGImport `*.sources.xml` files</string>
+    <string name="pref_summary_epgimport">Browse EPGImport sources and trigger an import run</string>
     <string name="epgimport_title">EPGImport</string>
-    <string name="epgimport_subtitle">Read-only view of `/etc/epgimport/*.sources.xml` on the receiver. Use the EPGImport plugin on the box to enable/disable sources or trigger an import.</string>
+    <string name="epgimport_subtitle">Browse `/etc/epgimport/*.sources.xml` files on the receiver. Tap a file to see its categories and sources. Use Run Import to trigger an EPGImport run immediately.</string>
+    <string name="epgimport_run">Run Import</string>
+    <string name="epgimport_run_triggered">EPGImport started on receiver</string>
+    <string name="epgimport_run_failed">Could not trigger EPGImport — is the plugin installed?</string>
     <string name="epgimport_empty">No `.sources.xml` files found in `/etc/epgimport/`.\nIs the EPGImport plugin installed?</string>
     <string name="epgimport_detail_empty">This file contains no sources.</string>
     <string name="epgimport_no_description">(no description)</string>
@@ -387,5 +390,320 @@
     <string name="recordings_delete_title">Delete %d recordings?</string>
     <string name="recordings_delete_message">This will permanently delete the selected recordings from the receiver. This cannot be undone.</string>
     <string name="recordings_deleted_summary">Deleted %1$d of %2$d</string>
+
+    <!-- v1.1.0: Virtual remote control -->
+    <string name="remote_title">Remote control</string>
+    <string name="remote_failed">Could not reach receiver</string>
+    <string name="remote_grp_nav">Navigation</string>
+    <string name="remote_grp_volume">Volume / Channel</string>
+    <string name="remote_grp_color">Coloured keys</string>
+    <string name="remote_grp_numbers">Numpad</string>
+    <string name="remote_grp_special">Special / playback</string>
+    <string name="remote_up">▲</string>
+    <string name="remote_down">▼</string>
+    <string name="remote_left">◀</string>
+    <string name="remote_right">▶</string>
+    <string name="remote_ok">OK</string>
+    <string name="remote_back">Back</string>
+    <string name="remote_exit">Exit</string>
+    <string name="remote_menu">Menu</string>
+    <string name="remote_info">Info</string>
+    <string name="remote_epg">EPG</string>
+    <string name="remote_text">Text</string>
+    <string name="remote_help">Help</string>
+    <string name="remote_audio">Audio</string>
+    <string name="remote_subtitle">Subs</string>
+    <string name="remote_power">Power</string>
+    <string name="remote_mute">Mute</string>
+    <string name="remote_vol_up">Vol +</string>
+    <string name="remote_vol_down">Vol −</string>
+    <string name="remote_ch_up">Ch +</string>
+    <string name="remote_ch_down">Ch −</string>
+    <string name="remote_red">Red</string>
+    <string name="remote_green">Green</string>
+    <string name="remote_yellow">Yellow</string>
+    <string name="remote_blue">Blue</string>
+    <string name="remote_play">Play</string>
+    <string name="remote_pause">Pause</string>
+    <string name="remote_stop">Stop</string>
+    <string name="remote_record">Rec</string>
+
+    <!-- v1.1.0: Send message to receiver -->
+    <string name="send_message">Send message to receiver</string>
+    <string name="send_message_hint">Message text</string>
+    <string name="send_message_timeout">Timeout (seconds)</string>
+    <string name="send_message_send">Send</string>
+    <string name="send_message_sent">Message sent</string>
+    <string name="send_message_failed">Send failed</string>
+    <string name="msg_type_info">Info</string>
+    <string name="msg_type_warning">Warning</string>
+    <string name="msg_type_question">Question</string>
+    <string name="msg_type_error">Error</string>
+
+    <!-- v1.1.0: Settings entries -->
+    <string name="pref_category_receiver_controls">Receiver controls</string>
+    <string name="pref_title_remote_control">Virtual remote control</string>
+    <string name="pref_summary_remote_control">On-screen remote for the receiver</string>
+    <string name="pref_title_send_message">Send message to receiver</string>
+    <string name="pref_summary_send_message">Display an OSD message on the TV connected to the receiver</string>
+
+    <!-- v1.1.0: Recording management extensions -->
+    <string name="action_rename_recording">Rename…</string>
+    <string name="action_move_recording">Move to folder…</string>
+    <string name="action_mark_watched">Mark watched</string>
+    <string name="action_mark_unwatched">Mark unwatched</string>
+    <string name="action_edit_tags">Edit tags…</string>
+    <string name="rename_recording_title">Rename recording</string>
+    <string name="rename_recording_hint">New name</string>
+    <string name="rename_recording_ok">Renamed</string>
+    <string name="rename_recording_failed">Rename failed</string>
+    <string name="move_recording_title">Move to folder</string>
+    <string name="move_recording_ok">Moved to %1$s</string>
+    <string name="move_recording_failed">Move failed</string>
+    <string name="move_recording_no_locations">No recording folders are configured on the receiver</string>
+    <string name="watched_tag_added">Marked as watched</string>
+    <string name="watched_tag_removed">Marked as unwatched</string>
+    <string name="watched_tag_failed">Tag update failed</string>
+    <string name="edit_tags_title">Edit tags</string>
+    <string name="edit_tags_hint">Space-separated tags</string>
+    <string name="edit_tags_ok">Tags updated</string>
+    <string name="edit_tags_failed">Tag update failed</string>
+
+    <!-- v1.1.0: Recording conflict warning -->
+    <string name="record_conflict_title">Possible recording conflict</string>
+    <string name="record_conflict_message">%1$d other timer(s) overlap this window. Your receiver only has %2$d tuner(s); some recordings may not happen. Schedule anyway?</string>
+    <string name="record_conflict_continue">Schedule anyway</string>
+
+    <!-- v1.1.0: EPG reminders -->
+    <string name="action_remind_me">Remind me</string>
+    <string name="action_cancel_reminder">Cancel reminder</string>
+    <string name="action_record">Record</string>
+    <string name="reminder_event_options">EPG event options</string>
+    <string name="reminder_added">Reminder set for %1$s</string>
+    <string name="reminder_removed">Reminder cancelled</string>
+    <string name="reminder_past_event">Cannot remind for past events</string>
+    <string name="reminder_channel_name">EPG reminders</string>
+    <string name="reminder_notification_title">Starting: %1$s</string>
+    <string name="reminder_notification_text">%1$s</string>
+    <string name="reminder_action_watch">Watch now</string>
+    <string name="reminder_action_snooze">Snooze 5 min</string>
+    <string name="reminder_notif_permission_denied">Reminder set, but notifications are disabled.</string>
+
+    <!-- v1.1.0 Phase 4: EPG refresh + cache + export -->
+    <string name="btn_epg_refresh">Refresh EPG</string>
+    <string name="btn_epg_export">Export EPG</string>
+    <string name="epg_refresh_requested">EPG refresh requested…</string>
+    <string name="epg_cache_banner">Showing cached EPG (%1$d min old)</string>
+    <string name="epg_export_dialog_title">Export EPG for channel</string>
+    <string name="epg_export_format_title">Export format</string>
+    <string name="epg_export_xmltv">XMLTV (.xml)</string>
+    <string name="epg_export_json">JSON (.json)</string>
+    <string name="epg_export_ok">Saved to Downloads/Enigma2FireTV/%1$s</string>
+    <string name="epg_export_failed">Export failed</string>
+    <string name="epg_export_no_events">No EPG events to export for this channel</string>
+    <string name="epg_export_no_channels">No channels to export — load a bouquet first</string>
+
+    <!-- v1.1.0 Phase 1: Receiver Settings hub -->
+    <string name="pref_title_receiver_settings">Receiver settings…</string>
+    <string name="pref_summary_receiver_settings">Power, audio, recording locations, parental, plugins, network, …</string>
+
+    <string name="receiver_settings_hub_title">Receiver settings</string>
+
+    <string name="rs_action_ok">OK</string>
+    <string name="rs_action_failed">Action failed</string>
+    <string name="rs_action_save">Save</string>
+    <string name="rs_action_refresh">Refresh</string>
+    <string name="rs_action_add">Add</string>
+    <string name="rs_action_remove">Remove</string>
+    <string name="rs_action_cancel">Cancel</string>
+    <string name="rs_unavailable">Not available on this receiver</string>
+
+    <string name="rs_power_title">Power &amp; sleep</string>
+    <string name="rs_power_subtitle">Standby, deep standby, reboot, sleep timer</string>
+    <string name="rs_power_btn_standby">Standby</string>
+    <string name="rs_power_btn_wake">Wake up</string>
+    <string name="rs_power_btn_deepstandby">Deep standby</string>
+    <string name="rs_power_btn_reboot">Reboot</string>
+    <string name="rs_power_btn_restart_gui">Restart GUI</string>
+    <string name="rs_power_status_label">State:</string>
+    <string name="rs_power_state_standby">standby</string>
+    <string name="rs_power_state_on">on</string>
+    <string name="rs_power_sleep_header">Sleep timer</string>
+    <string name="rs_power_sleep_minutes_hint">minutes</string>
+    <string name="rs_power_sleep_action_standby">Standby</string>
+    <string name="rs_power_sleep_action_shutdown">Shutdown</string>
+    <string name="rs_power_sleep_enable">Enabled</string>
+    <string name="rs_power_sleep_save">Save sleep timer</string>
+
+    <string name="rs_audio_title">Audio &amp; volume</string>
+    <string name="rs_audio_subtitle">Receiver volume and mute</string>
+    <string name="rs_audio_btn_mute">Mute / unmute</string>
+    <string name="rs_audio_btn_minus5">−5</string>
+    <string name="rs_audio_btn_plus5">+5</string>
+    <string name="rs_audio_level_fmt">Volume: %1$d</string>
+    <string name="rs_audio_status_muted">Muted</string>
+    <string name="rs_audio_status_unmuted">Not muted</string>
+
+    <string name="rs_recloc_title">Recording locations</string>
+    <string name="rs_recloc_subtitle">Default folder + per-receiver list</string>
+    <string name="rs_recloc_btn_add">Add</string>
+    <string name="rs_recloc_btn_set_default">Set default</string>
+    <string name="rs_recloc_btn_remove">Remove</string>
+    <string name="rs_recloc_current_fmt">Current: %1$s</string>
+    <string name="rs_recloc_remove_title">Remove location?</string>
+    <string name="rs_recloc_remove_msg">Remove %1$s from recording locations?</string>
+    <string name="rs_recloc_add_title">Add location</string>
+    <string name="rs_recloc_add_hint">/media/hdd/movie</string>
+
+    <string name="rs_tuner_title">Tuner / signal</string>
+    <string name="rs_tuner_subtitle">Live SNR / BER / signal (auto-refresh)</string>
+
+    <string name="rs_parental_title">Parental control</string>
+    <string name="rs_parental_subtitle">Protected services and PIN</string>
+    <string name="rs_parental_app_pin_prompt_title">Enter app PIN</string>
+    <string name="rs_parental_pin_wrong">Wrong PIN</string>
+    <string name="rs_parental_btn_change_app_pin">Change app PIN</string>
+    <string name="rs_parental_btn_change_setup_pin">Change receiver setup PIN</string>
+    <string name="rs_parental_old_pin_hint">Current PIN (blank if none)</string>
+    <string name="rs_parental_new_pin_hint">New PIN (blank to clear)</string>
+    <string name="rs_parental_status_fmt">Parental: %1$s · Setup-PIN active: %2$s</string>
+    <string name="rs_parental_list_header">Protected services</string>
+    <string name="rs_parental_list_empty">(no protected services)</string>
+
+    <string name="rs_wol_title">Wake-on-LAN</string>
+    <string name="rs_wol_subtitle">WOL on standby, location magic packet</string>
+    <string name="rs_wol_enable">WOL enabled</string>
+    <string name="rs_wol_standby">WOL from standby</string>
+    <string name="rs_wol_location_lbl">Location:</string>
+
+    <string name="rs_transcoding_title">Transcoding</string>
+    <string name="rs_transcoding_subtitle">Edit transcoding profile values</string>
+
+    <string name="rs_webui_title">OpenWebif Web UI</string>
+    <string name="rs_webui_subtitle">Session timeout, kiosk, picons, …</string>
+    <string name="rs_webui_session_timeout">Session timeout</string>
+    <string name="rs_webui_kiosk">Kiosk mode</string>
+    <string name="rs_webui_autorefresh">Auto-refresh</string>
+    <string name="rs_webui_hide_adult">Hide adult</string>
+    <string name="rs_webui_picons">Show picons</string>
+    <string name="rs_webui_show_name">Show name column</string>
+
+    <string name="rs_allsettings_title">All settings (advanced)</string>
+    <string name="rs_allsettings_subtitle">Browse and edit every config section</string>
+    <string name="rs_allsettings_pick_section">Pick a section</string>
+    <string name="rs_allsettings_empty">(section is empty)</string>
+
+    <string name="rs_storage_title">Storage &amp; mounts</string>
+    <string name="rs_storage_subtitle">Mount points and per-disk SMART</string>
+    <string name="rs_storage_loading">Loading…</string>
+    <string name="rs_storage_mounts_header">— Mounts —</string>
+    <string name="rs_storage_smart_header">— SMART —</string>
+
+    <string name="rs_log_title">System log</string>
+    <string name="rs_log_subtitle">View, filter, and share crashlog</string>
+    <string name="rs_log_filter_hint">filter…</string>
+    <string name="rs_log_share">Save to Downloads</string>
+    <string name="rs_log_saved_fmt">Saved %1$s to Downloads</string>
+
+    <string name="rs_plugins_title">Plugin manager</string>
+    <string name="rs_plugins_subtitle">List, install, remove receiver plugins</string>
+    <string name="rs_plugins_install">Install plugin</string>
+    <string name="rs_plugins_install_hint">enigma2-plugin-…</string>
+    <string name="rs_plugins_remove_title">Remove plugin?</string>
+    <string name="rs_plugins_remove_msg">Remove %1$s from the receiver?</string>
+
+    <string name="rs_network_title">Network info</string>
+    <string name="rs_network_subtitle">Interfaces, IP, gateway, MAC</string>
+    <string name="rs_network_copy">Copy to clipboard</string>
+    <string name="rs_network_copied">Copied to clipboard</string>
+
+    <!-- v1.5.0: Picture-in-Picture -->
+    <string name="pref_title_pip">Picture-in-Picture</string>
+    <string name="pref_summary_pip">Press Home during live TV to float the player in a small window</string>
+
+    <!-- v1.2.0 Phase 5: external player -->
+    <string name="pref_title_player_mode">Player</string>
+    <string name="pref_summary_player_mode">Choose where video plays back</string>
+    <string name="pref_title_preferred_external">Preferred external player</string>
+    <string name="player_any_external">Any (system chooser)</string>
+    <string name="player_internal">Internal player</string>
+    <string name="player_no_external">No external player found. Install VLC or Kodi.</string>
+    <string name="player_choose_title">Play with…</string>
+    <string name="player_fallback_title">Stream failed — open with…</string>
+
+    <!-- v1.2.0 Phase 5: HDHomeRun import -->
+    <string name="hdhomerun_import_btn">HDHomeRun…</string>
+    <string name="hdhomerun_dialog_title">Import HDHomeRun lineup</string>
+    <string name="hdhomerun_bouquet_hint">New bouquet name</string>
+    <string name="hdhomerun_host_hint">HDHomeRun host (e.g. hdhomerun.local)</string>
+    <string name="hdhomerun_skip_drm">Skip encrypted (DRM) channels</string>
+    <string name="hdhomerun_discovering">Fetching lineup…</string>
+    <string name="hdhomerun_no_lineup">No channels found on that host</string>
+    <string name="hdhomerun_all_drm">All channels are encrypted — nothing to import</string>
+    <string name="hdhomerun_create_failed">Could not create bouquet: %1$s</string>
+    <string name="hdhomerun_bouquet_not_found">Bouquet created but could not be located</string>
+    <string name="hdhomerun_import_done">Imported %1$d of %2$d channels</string>
+
+    <!-- v1.2.0 Phase 6: multi-room Zap on… -->
+    <string name="zap_on_label">Zap on\u2026</string>
+    <string name="zap_on_pick_title">Zap on which receiver?</string>
+    <string name="zap_on_sent">%1$s → %2$s</string>
+    <string name="zap_on_failed">Could not reach %1$s</string>
+
+    <!-- v1.2.0 Phase 6: WOL picker -->
+    <string name="wol_pick_title">Wake which receiver?</string>
+
+    <!-- v1.2.0 Phase 6: profile backup -->
+    <string name="pref_category_backup">Backup</string>
+    <string name="pref_title_export_profiles">Export device profiles…</string>
+    <string name="pref_summary_export_profiles">Save profiles to Downloads as JSON</string>
+    <string name="pref_title_import_profiles">Import device profiles…</string>
+    <string name="pref_summary_import_profiles">Merge profiles from a previously exported JSON file</string>
+    <string name="backup_export_include_passwords">Include passwords (less secure)</string>
+    <string name="backup_export_ok">Profiles exported to Downloads</string>
+    <string name="backup_export_failed">Export failed</string>
+    <string name="backup_import_ok">Imported %1$d profile(s)</string>
+    <string name="backup_import_failed">Import failed — check the file format</string>
+    <string name="backup_import_zero">No profiles found in that file</string>
+
+    <!-- v1.2.0 Phase 7: EPG Assign (gated) -->
+    <string name="epgassign_title">Assign EPG — %1$s</string>
+    <string name="epgassign_unavailable">EPG Assign plugin not found on this receiver</string>
+    <string name="epgassign_no_sources">No EPG sources available</string>
+    <string name="epgassign_pick_source">Choose EPG source</string>
+    <string name="epgassign_loading_channels">Loading channels…</string>
+    <string name="epgassign_channels_failed">Could not load channels for that source</string>
+    <string name="epgassign_no_channels">No channels in that source</string>
+    <string name="epgassign_pick_channel">Choose EPG channel</string>
+    <string name="epgassign_assign_failed">Assignment failed</string>
+    <string name="epgassign_assigned_title">EPG source assigned</string>
+    <string name="epgassign_assigned_msg">Assigned to \"%1$s\". Run EPGImport now?</string>
+    <string name="epgassign_run_import">Run now</string>
+    <string name="epgassign_import_triggered">EPGImport started</string>
+    <string name="epgassign_assign_channel">Assign EPG source\u2026</string>
+
+    <!-- IPTV Player (standalone, no Enigma2 required) -->
+    <string name="iptv_player">IPTV Player</string>
+    <string name="iptv_setup_title">IPTV Setup</string>
+    <string name="iptv_setup_subtitle">Enter your M3U playlist URL.\nEPG data is provided by EPGSHARE01 (configurable).</string>
+    <string name="iptv_m3u_url_hint">M3U playlist URL (http://…/playlist.m3u)</string>
+    <string name="iptv_epg_url_hint">EPG URL — XMLTV / EPGSHARE01 (leave blank for default)</string>
+    <string name="iptv_load">Load Channels</string>
+    <string name="iptv_m3u_required">Please enter an M3U playlist URL</string>
+    <string name="iptv_error">Failed to load channels</string>
+    <string name="iptv_empty">No channels found in playlist</string>
+    <string name="iptv_refresh">Refresh</string>
+    <string name="iptv_settings">Setup</string>
+    <string name="iptv_groups">Groups</string>
+    <string name="iptv_epg_loading">Loading EPG\u2026</string>
+    <string name="iptv_epg_failed">EPG unavailable</string>
+
+    <!-- Integrated M3U bouquet management -->
+    <string name="btn_add_m3u">+ M3U</string>
+    <string name="m3u_source_add_title">Add M3U Source</string>
+    <string name="m3u_source_name_hint">Name (e.g. My IPTV)</string>
+    <string name="m3u_source_url_hint">M3U URL (http://…)</string>
+    <string name="m3u_source_loading">Loading \"%s\"\u2026</string>
+    <string name="play">Play</string>
 
 </resources>

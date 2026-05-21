@@ -66,25 +66,41 @@ class ChannelAdapter(
             holder.itemView.context.getString(R.string.cd_picon_for, service.name)
 
         // Picon load order:
-        // 1. ref with trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0_.png)
-        // 2. ref without trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0.png)
-        // 3. channel name (e.g. 1 CANAL SUR HD.png)
-        val piconUrl = if (service.piconPath != null) prefs.piconUrl(service.piconPath)
-                       else prefs.piconFallbackUrl(service.ref)
-        val piconUrlShort = prefs.piconFallbackUrlShort(service.ref)
-        val piconUrlName = prefs.piconFallbackUrlByName(service.name)
+        // 1. If piconPath is already a full URL (IPTV logo), load it directly.
+        // 2. ref with trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0_.png)
+        // 3. ref without trailing _ (e.g. 1_0_19_1_0_0_8c90fd2_0_0_0.png)
+        // 4. channel name (e.g. 1 CANAL SUR HD.png)
+        val piconUrl = when {
+            service.piconPath?.startsWith("http") == true -> service.piconPath
+            service.piconPath != null -> prefs.piconUrl(service.piconPath)
+            else -> prefs.piconFallbackUrl(service.ref)
+        }
+        val piconUrlShort = if (service.ref.startsWith("iptv_ch:")) null
+                            else prefs.piconFallbackUrlShort(service.ref)
+        val piconUrlName = if (service.ref.startsWith("iptv_ch:")) null
+                           else prefs.piconFallbackUrlByName(service.name)
         Glide.with(holder.ivPicon)
             .load(piconUrl)
             .placeholder(R.drawable.ic_channel_placeholder)
             .error(
-                Glide.with(holder.ivPicon)
-                    .load(piconUrlShort)
-                    .error(
-                        Glide.with(holder.ivPicon)
-                            .load(piconUrlName)
-                            .placeholder(R.drawable.ic_channel_placeholder)
-                            .error(R.drawable.ic_channel_placeholder)
-                    )
+                if (piconUrlShort != null) {
+                    Glide.with(holder.ivPicon)
+                        .load(piconUrlShort)
+                        .error(
+                            if (piconUrlName != null) {
+                                Glide.with(holder.ivPicon)
+                                    .load(piconUrlName)
+                                    .placeholder(R.drawable.ic_channel_placeholder)
+                                    .error(R.drawable.ic_channel_placeholder)
+                            } else {
+                                Glide.with(holder.ivPicon)
+                                    .load(R.drawable.ic_channel_placeholder)
+                            }
+                        )
+                } else {
+                    Glide.with(holder.ivPicon)
+                        .load(R.drawable.ic_channel_placeholder)
+                }
             )
             .into(holder.ivPicon)
 

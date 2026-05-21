@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- v1.2.0 Phase 5: player mode options for ListPreference -->
+    <string-array name="player_mode_labels">
+        <item>Internal player</item>
+        <item>External player</item>
+        <item>Ask each time</item>
+    </string-array>
+    <string-array name="player_mode_values">
+        <item>internal</item>
+        <item>external</item>
+        <item>ask</item>
+    </string-array>
+</resources>

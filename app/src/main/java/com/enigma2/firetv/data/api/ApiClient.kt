@@ -23,6 +23,9 @@ object ApiClient {
     val service: OpenWebifService
         get() = _service ?: error("ApiClient not initialized. Call initialize() first.")
 
+    /** Public read-only view of the configured base URL (e.g. `http://192.168.1.5:80/`). Empty before [initialize]. */
+    val baseUrl: String get() = currentBaseUrl
+
     /**
      * @param host        IP address or hostname of the receiver
      * @param port        HTTP port (default 80)

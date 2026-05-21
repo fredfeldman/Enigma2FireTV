@@ -7,19 +7,33 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.Bouquet
+import com.enigma2.firetv.data.model.EpgEvent
+import com.enigma2.firetv.data.model.IptvChannel
+import com.enigma2.firetv.data.model.IptvSource
 import com.enigma2.firetv.data.model.NowNextEvent
 import com.enigma2.firetv.data.model.Service
+import com.enigma2.firetv.data.prefs.IptvPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
+import com.enigma2.firetv.data.repository.IptvRepository
 import com.enigma2.firetv.util.ApiErrors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class ChannelViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         const val FAVORITES_REF = "__favorites__"
+        /** Prefix for synthetic IPTV bouquet refs: "iptv:${sourceId}:${group}" */
+        const val IPTV_BOUQUET_PREFIX = "iptv:"
+        /** Prefix for IPTV channel service refs: "iptv_ch:${tvgIdOrUrl}" */
+        const val IPTV_CH_PREFIX = "iptv_ch:"
     }
 
     private val repository = Enigma2Repository(app)
+
+    /** In-memory lookup: IPTV service ref → IptvChannel (for playback URL). */
+    val iptvChannelMap = mutableMapOf<String, IptvChannel>()
 
     // ---- Bouquets ----
     private val _bouquets = MutableLiveData<List<Bouquet>>()
@@ -52,29 +66,61 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
+            var enigmaBouquets: List<Bouquet> = emptyList()
             try {
-                val list = repository.getBouquets()
-                _bouquets.value = list
-                // Auto-select first bouquet
-                if (list.isNotEmpty() && _selectedBouquet.value == null) {
-                    selectBouquet(list[0])
-                }
+                enigmaBouquets = repository.getBouquets()
             } catch (e: Exception) {
                 _error.value = getApplication<Application>().getString(
                     R.string.vm_error_channels, ApiErrors.userMessage(getApplication(), e)
                 )
-            } finally {
-                _isLoading.value = false
+            }
+            val iptvBouquets = withContext(Dispatchers.IO) { buildIptvBouquets() }
+            val allBouquets = enigmaBouquets + iptvBouquets
+            _bouquets.value = allBouquets
+            // Auto-select first bouquet
+            if (allBouquets.isNotEmpty() && _selectedBouquet.value == null) {
+                selectBouquet(allBouquets[0])
+            }
+            _isLoading.value = false
+        }
+    }
+
+    /** Builds synthetic Bouquet entries for all cached IPTV sources. */
+    private fun buildIptvBouquets(): List<Bouquet> {
+        val iptvPrefs = IptvPreferences(getApplication())
+        val iptvRepo = IptvRepository(getApplication())
+        val result = mutableListOf<Bouquet>()
+        for (source in iptvPrefs.getSources()) {
+            val channels = iptvRepo.loadCachedChannels(source.id) ?: continue
+            if (channels.isEmpty()) continue
+            val groups = channels.map { it.group.ifBlank { "Uncategorized" } }.distinct()
+            // "All Channels" entry for the source
+            result.add(Bouquet(
+                ref = "iptv:${source.id}:__all__",
+                name = source.name,
+                channels = null
+            ))
+            // One entry per group
+            for (group in groups) {
+                result.add(Bouquet(
+                    ref = "iptv:${source.id}:$group",
+                    name = "  $group",
+                    channels = null
+                ))
             }
         }
+        return result
     }
 
     fun selectBouquet(bouquet: Bouquet) {
         _selectedBouquet.value = bouquet
-        if (bouquet.ref != FAVORITES_REF) {
-            loadChannels(bouquet.ref)
-            loadNowNext(bouquet.ref)
-            loadRecordingTimers()
+        when {
+            bouquet.ref.startsWith(IPTV_BOUQUET_PREFIX) -> loadIptvChannels(bouquet.ref)
+            bouquet.ref != FAVORITES_REF -> {
+                loadChannels(bouquet.ref)
+                loadNowNext(bouquet.ref)
+                loadRecordingTimers()
+            }
         }
         // For FAVORITES_REF: ChannelsFragment observes selectedBouquet and calls showFavoriteChannels()
     }
@@ -95,6 +141,115 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
     /** Called by ChannelsFragment to populate the favorites bouquet channel list. */
     fun showFavoriteChannels(services: List<Service>) {
         _channels.value = services
+    }
+
+    /** Loads channels for an IPTV bouquet from disk cache and sets _channels + _nowNext. */
+    private fun loadIptvChannels(bouquetRef: String) {
+        viewModelScope.launch {
+            _channels.value = emptyList()
+            _nowNext.value = emptyList()
+            // Parse ref: "iptv:${sourceId}:${groupOrAll}"
+            val afterPrefix = bouquetRef.removePrefix(IPTV_BOUQUET_PREFIX)
+            val colonIdx = afterPrefix.indexOf(':')
+            if (colonIdx < 0) return@launch
+            val sourceId = afterPrefix.substring(0, colonIdx)
+            val groupName = afterPrefix.substring(colonIdx + 1)
+
+            val iptvRepo = IptvRepository(getApplication())
+            val allChannels = withContext(Dispatchers.IO) {
+                iptvRepo.loadCachedChannels(sourceId)
+            } ?: return@launch
+
+            val filtered = if (groupName == "__all__") allChannels
+                           else allChannels.filter {
+                               it.group.ifBlank { "Uncategorized" } == groupName
+                           }
+
+            // Build the in-memory ref → IptvChannel map
+            val services = filtered.map { ch ->
+                val ref = IPTV_CH_PREFIX + ch.tvgId.ifBlank { ch.streamUrl }
+                iptvChannelMap[ref] = ch
+                Service(ref = ref, name = ch.name, piconPath = ch.logoUrl.ifBlank { null })
+            }
+            _channels.value = services
+
+            // Load EPG from disk cache (best-effort)
+            val cachedEpg = withContext(Dispatchers.IO) {
+                iptvRepo.loadCachedEpg(sourceId)
+            }
+            if (cachedEpg != null) {
+                _nowNext.value = buildIptvNowNextEvents(cachedEpg)
+            }
+        }
+    }
+
+    /** Converts a cached IPTV EPG map into NowNextEvent list for the channel adapter. */
+    private fun buildIptvNowNextEvents(
+        epg: Map<String, List<com.enigma2.firetv.data.model.IptvEpgEvent>>
+    ): List<NowNextEvent> {
+        val now = System.currentTimeMillis()
+        return epg.entries.mapNotNull { (tvgId, events) ->
+            val nowEvt = events.firstOrNull { it.startMs <= now && it.endMs > now }
+            val nextEvt = events.firstOrNull { it.startMs > now }
+            if (nowEvt == null && nextEvt == null) return@mapNotNull null
+            val serviceRef = IPTV_CH_PREFIX + tvgId
+            NowNextEvent(
+                nowEvent = nowEvt?.let {
+                    EpgEvent(
+                        id = 0,
+                        serviceRef = serviceRef,
+                        serviceName = "",
+                        title = it.title,
+                        shortDesc = it.description,
+                        longDesc = null,
+                        beginTimestamp = it.startMs / 1000,
+                        durationSeconds = ((it.endMs - it.startMs) / 1000).toInt()
+                    )
+                },
+                nextEvent = nextEvt?.let {
+                    EpgEvent(
+                        id = 0,
+                        serviceRef = serviceRef,
+                        serviceName = "",
+                        title = it.title,
+                        shortDesc = it.description,
+                        longDesc = null,
+                        beginTimestamp = it.startMs / 1000,
+                        durationSeconds = ((it.endMs - it.startMs) / 1000).toInt()
+                    )
+                },
+                serviceRef = serviceRef,
+                serviceName = ""
+            )
+        }
+    }
+
+    /**
+     * Fetches channels for a newly added M3U source, caches them, then rebuilds
+     * the bouquet list to include the new source's groups.
+     */
+    fun refreshIptvSource(source: IptvSource) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val iptvRepo = IptvRepository(getApplication())
+                val channels = withContext(Dispatchers.IO) {
+                    iptvRepo.fetchChannels(source.m3uUrl)
+                }
+                withContext(Dispatchers.IO) {
+                    iptvRepo.saveCachedChannels(source.id, channels)
+                }
+                // Rebuild full bouquet list preserving Enigma2 bouquets
+                val currentBouquets = _bouquets.value ?: emptyList()
+                val enigmaBouquets = currentBouquets.filter { !it.ref.startsWith(IPTV_BOUQUET_PREFIX) }
+                val allIptvBouquets = withContext(Dispatchers.IO) { buildIptvBouquets() }
+                _bouquets.value = enigmaBouquets + allIptvBouquets
+            } catch (e: Exception) {
+                _error.value = "Failed to load M3U: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     fun loadNowNext(bouquetRef: String) {
@@ -139,6 +294,7 @@ class ChannelViewModel(app: Application) : AndroidViewModel(app) {
         _nowNext.value = emptyList()
         _error.value = null
         _channelsDirty.value = false
+        iptvChannelMap.clear()
     }
 
     // ---- Channels-dirty flag ----

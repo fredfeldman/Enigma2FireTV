@@ -267,14 +267,8 @@ class EpgGridView @JvmOverloads constructor(
                 val service = services.getOrNull(selectedRow)
                 if (selectedEvent != null && service != null) {
                     if (keyEvent.repeatCount >= 2 && !longPressHandled) {
-                        // Long-press: trigger record
                         longPressHandled = true
                         onEventLongPressed?.invoke(selectedEvent)
-                    } else if (keyEvent.repeatCount == 0) {
-                        longPressHandled = false
-                    }
-                    if (keyEvent.repeatCount == 0 && !longPressHandled) {
-                        onEventClicked?.invoke(selectedEvent, service)
                     }
                 }
                 true
@@ -285,6 +279,14 @@ class EpgGridView @JvmOverloads constructor(
 
     override fun onKeyUp(keyCode: Int, keyEvent: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_DPAD_CENTER || keyCode == KeyEvent.KEYCODE_ENTER) {
+            if (!longPressHandled) {
+                // Short press — fire click now that we know it wasn't a long-press.
+                val selectedEvent = getSelectedEvent()
+                val service = services.getOrNull(selectedRow)
+                if (selectedEvent != null && service != null) {
+                    onEventClicked?.invoke(selectedEvent, service)
+                }
+            }
             longPressHandled = false
         }
         return super.onKeyUp(keyCode, keyEvent)

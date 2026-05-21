@@ -9,9 +9,12 @@ import com.enigma2.firetv.data.model.TimerDeleteResponse
 import com.enigma2.firetv.data.model.TimerListResponse
 import com.enigma2.firetv.data.model.TimerResponse
 import okhttp3.ResponseBody
+import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 import retrofit2.http.Streaming
+import retrofit2.http.Url
 
 /**
  * Retrofit interface for the OpenWebif REST API exposed by Enigma2 receivers.
@@ -282,4 +285,220 @@ interface OpenWebifService {
         @Query("file") file: String,
         @Query("action") action: String = "download"
     ): ResponseBody
+
+    // =========================================================================
+    // 1.1.0 PORT — Phase 0 foundations: new endpoints from Enigma2Android v1.0.6
+    //                                   through v1.1.1 (ports of the sibling
+    //                                   project's OpenWebifService.kt verbatim
+    //                                   where paths are concerned).
+    // =========================================================================
+
+    // ---- v1.0.6: Receiver Settings ----
+
+    /** Live status — header on most receiver-settings screens. */
+    @GET("api/statusinfo")
+    suspend fun getStatusInfo(): Response<ResponseBody>
+
+    // Power
+    @GET("api/powerstate")
+    suspend fun getPowerState(): Response<ResponseBody>
+
+    @GET("api/powerstate")
+    suspend fun setPowerState(@Query("newstate") newState: Int): Response<ResponseBody>
+
+    @GET("web/sleeptimer")
+    suspend fun getSleepTimer(@Query("cmd") cmd: String = "get"): Response<ResponseBody>
+
+    @GET("web/sleeptimer")
+    suspend fun setSleepTimer(
+        @Query("cmd") cmd: String = "set",
+        @Query("time") time: Int,
+        @Query("action") action: String,
+        @Query("enabled") enabled: String
+    ): Response<ResponseBody>
+
+    // Volume
+    @GET("web/vol")
+    suspend fun getVolume(): Response<ResponseBody>
+
+    /** [set] = "setNN" for an absolute volume, or "mute" to toggle mute. */
+    @GET("web/vol")
+    suspend fun setVolume(@Query("set") set: String): Response<ResponseBody>
+
+    // Generic config tree
+    @GET("web/settings")
+    suspend fun getAllSettings(): Response<ResponseBody>
+
+    @GET("api/config")
+    suspend fun getConfigSections(): Response<ResponseBody>
+
+    @GET
+    suspend fun getConfigSection(@Url url: String): Response<ResponseBody>
+
+    @GET("web/saveconfig")
+    suspend fun saveConfig(
+        @Query("key") key: String,
+        @Query("value") value: String
+    ): Response<ResponseBody>
+
+    // OpenWebif Web UI config (six toggles)
+    @GET("web/setwebconfig")
+    suspend fun setWebConfig(@QueryMap params: Map<String, String>): Response<ResponseBody>
+
+    // Parental control (read)
+    @GET("web/parentcontrollist")
+    suspend fun getParentControlList(): Response<ResponseBody>
+
+    @GET("BQE/getprotectionsettings")
+    suspend fun getProtectionSettings(): Response<ResponseBody>
+
+    // Recording locations
+    @GET("api/getlocations")
+    suspend fun getLocations(): Response<ResponseBody>
+
+    @GET("api/getcurrlocation")
+    suspend fun getCurrentLocation(): Response<ResponseBody>
+
+    @GET("api/setcurrlocation")
+    suspend fun setCurrentLocation(@Query("location") location: String): Response<ResponseBody>
+
+    @GET("api/addlocation")
+    suspend fun addLocation(
+        @Query("dirname") dirname: String,
+        @Query("createFolder") createFolder: Int = 1
+    ): Response<ResponseBody>
+
+    @GET("api/removelocation")
+    suspend fun removeLocation(@Query("dirname") dirname: String): Response<ResponseBody>
+
+    // Tuner / signal
+    @GET("web/tunersignal")
+    suspend fun getTunerSignal(): Response<ResponseBody>
+
+    // Wake-on-LAN setup (receiver-side)
+    @GET("wol/setup")
+    suspend fun getWolSetup(): Response<ResponseBody>
+
+    @GET("wol/setup")
+    suspend fun setWolSetup(@QueryMap params: Map<String, String>): Response<ResponseBody>
+
+    // Transcoding plugin
+    @GET("transcoding")
+    suspend fun getTranscodingConfig(): Response<ResponseBody>
+
+    @GET("transcoding")
+    suspend fun setTranscodingConfig(@QueryMap params: Map<String, String>): Response<ResponseBody>
+
+    // ---- v1.0.7: Remote control & messaging ----
+
+    /** Linux input keycode (e.g. 352 = OK, 412 = back, 116 = power). */
+    @GET("api/remotecontrol")
+    suspend fun sendRemoteCommand(@Query("command") commandCode: Int): Response<ResponseBody>
+
+    @GET("api/message")
+    suspend fun sendMessage(
+        @Query("text") text: String,
+        @Query("type") type: Int = 1,
+        @Query("timeout") timeout: Int = 10
+    ): Response<ResponseBody>
+
+    // ---- v1.0.8: Recording management ----
+
+    @GET("api/movierename")
+    suspend fun renameMovie(
+        @Query("sRef") sRef: String,
+        @Query("newname") newName: String
+    ): Response<ResponseBody>
+
+    @GET("api/moviemove")
+    suspend fun moveMovie(
+        @Query("sRef") sRef: String,
+        @Query("dirname") newDir: String
+    ): Response<ResponseBody>
+
+    @GET("api/movietags")
+    suspend fun movieTags(
+        @Query("sRef") sRef: String,
+        @Query("add") add: String? = null,
+        @Query("del") del: String? = null
+    ): Response<ResponseBody>
+
+    /** Returns the list of all tags configured on the receiver. */
+    @GET("api/gettags")
+    suspend fun getTags(): Response<ResponseBody>
+
+    // ---- v1.1.0: Parental write ----
+
+    /** action: "add" or "remove". */
+    @GET("api/parentcontrol")
+    suspend fun parentalProtect(
+        @Query("sRef") sRef: String,
+        @Query("action") action: String,
+        @Query("type") type: String? = null
+    ): Response<ResponseBody>
+
+    @GET("api/changesetuppin")
+    suspend fun changeSetupPin(
+        @Query("newpin") newPin: String,
+        @Query("oldpin") oldPin: String
+    ): Response<ResponseBody>
+
+    // ---- v1.1.0: Storage / system / plugins / network ----
+
+    @GET("api/mountinfo")
+    suspend fun getMountInfo(): Response<ResponseBody>
+
+    @GET("api/smartinfo")
+    suspend fun getSmartInfo(): Response<ResponseBody>
+
+    @GET("api/getlog")
+    suspend fun getReceiverLog(): Response<ResponseBody>
+
+    @GET("api/plugins")
+    suspend fun listPlugins(): Response<ResponseBody>
+
+    @GET("api/installplugin")
+    suspend fun installPlugin(@Query("package") pkg: String): Response<ResponseBody>
+
+    @GET("api/removeplugin")
+    suspend fun removePlugin(@Query("package") pkg: String): Response<ResponseBody>
+
+    @GET("api/networkinfo")
+    suspend fun getNetworkInfo(): Response<ResponseBody>
+
+    // ---- v1.1.1: EPG refresh ----
+
+    @GET("api/serviceupdateepg")
+    suspend fun refreshEpgForService(@Query("sRef") sRef: String): Response<ResponseBody>
+
+    @GET("web/epgrefresh")
+    suspend fun triggerEpgRefresh(): Response<ResponseBody>
+
+    // ---- v1.2.0 Phase 7: EPG Assign companion plugin ----
+
+    @GET("epgassign/ping")
+    suspend fun epgAssignPing(): Response<ResponseBody>
+
+    @GET("epgassign/sources")
+    suspend fun epgAssignSources(): Response<ResponseBody>
+
+    @GET("epgassign/source")
+    suspend fun epgAssignSource(@Query("name") name: String): Response<ResponseBody>
+
+    @GET("epgassign/mappings")
+    suspend fun epgAssignMappings(): Response<ResponseBody>
+
+    @GET("epgassign/assign")
+    suspend fun epgAssign(
+        @Query("sref") sRef: String,
+        @Query("channelId") channelId: String,
+        @Query("source") source: String,
+        @Query("name") name: String
+    ): Response<ResponseBody>
+
+    @GET("epgassign/unassign")
+    suspend fun epgAssignUnassign(@Query("sref") sRef: String): Response<ResponseBody>
+
+    @GET("epgassign/import")
+    suspend fun epgAssignImport(): Response<ResponseBody>
 }

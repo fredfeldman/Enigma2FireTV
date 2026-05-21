@@ -35,6 +35,18 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp" />
 
+            <TextView
+                android:id="@+id/btn_add_m3u"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/btn_add_m3u"
+                android:textColor="@color/accent"
+                android:textSize="11sp"
+                android:padding="6dp"
+                android:layout_marginStart="6dp"
+                android:focusable="true" />
+
         </LinearLayout>
 
         <androidx.recyclerview.widget.RecyclerView
@@ -156,6 +168,18 @@
                 android:text="@string/btn_screenshot"
                 android:contentDescription="@string/cd_btn_screenshot"
                 android:textColor="@android:color/white"
+                android:textSize="13sp"
+                android:padding="8dp"
+                android:layout_marginEnd="8dp"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/btn_iptv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_button"
+                android:text="@string/iptv_player"
+                android:textColor="@color/accent"
                 android:textSize="13sp"
                 android:padding="8dp"
                 android:focusable="true" />

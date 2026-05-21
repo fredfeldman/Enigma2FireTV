@@ -19,6 +19,19 @@ A native Android / FireTV app built with **Kotlin**, the **Leanback** TV UI libr
 | **Recordings** | Browse, search and play back recordings stored on the receiver |
 | **Playlists** | Create and manage recording playlists; reorder entries, play sequentially with auto-advance |
 | **Video folder** | Add video files from `/media/hdd/video` on the receiver directly into a playlist |
+| **Virtual remote** (1.1.0) | Drive the receiver with the Fire TV remote — D-pad-friendly remote control screen |
+| **Send message** (1.1.0) | Push an OSD info / warning / error message to the receiver with custom timeout |
+| **Receiver settings hub** (1.1.0) | 13 sub-screens: power, audio, recording locations, tuner signal, parental control, WOL, transcoding, OpenWebif UI, all settings, storage / SMART, system log, plugin manager, network info |
+| **EPG reminders** (1.1.0) | Per-event reminders with **Watch now** / **Snooze 5 min** notification actions; timer-conflict warnings |
+| **Rename / move / tag recordings** (1.1.0) | Manage recordings on the receiver from the Recordings screen |
+| **EPG refresh / cache / export** (1.1.0) | Trigger a server-side EPG refresh, fall back to a cached EPG when offline, export per-channel **XMLTV** or **JSON** to `Downloads/Enigma2FireTV/` |
+| **External player routing** (1.2.0) | Choose to play channels in the built-in ExoPlayer, VLC, MX Player, or Kodi — or ask each time. Configured in Settings → Player |
+| **HDHomeRun import** (1.2.0) | Import a complete channel lineup from any HDHomeRun tuner on the LAN into a new bouquet, with DRM-skip and transcode-profile options |
+| **Zap on…** (1.2.0) | Instantly tune a secondary receiver to the selected channel from the channel context menu |
+| **Multi-receiver Send Message** (1.2.0) | Pick which receiver receives the on-screen message when ≥2 profiles are configured |
+| **WOL device picker** (1.2.0) | Wake-on-LAN prompts which receiver to wake when multiple devices have a MAC address |
+| **Profile backup/restore** (1.2.0) | Export all receiver profiles to a JSON file in Downloads; import and merge on any device |
+| **EPG Assign** (1.2.0, gated) | Full channel → EPG-source assignment flow via the EPGAssign plugin (disabled by default; enable with `ENABLE_EPG_ASSIGN=true` build flag) |
 
 ## Prerequisites
 

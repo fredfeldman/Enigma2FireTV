@@ -5,9 +5,13 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioGroup
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -15,7 +19,9 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.enigma2.firetv.R
+import com.enigma2.firetv.data.hdhomerun.HdHomeRunClient
 import com.enigma2.firetv.data.model.Bouquet
+import com.enigma2.firetv.data.model.Service
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
 import com.enigma2.firetv.util.ApiErrors
@@ -202,7 +208,97 @@ class BouquetEditorFragment : Fragment() {
                 runOp { repo.addBouquet(name, mode) }
             }
             .setNegativeButton(android.R.string.cancel, null)
+            // Phase 5.5: neutral button triggers HDHomeRun import
+            .setNeutralButton(R.string.hdhomerun_import_btn) { _, _ ->
+                promptHdHomeRunImport()
+            }
             .show()
+    }
+
+    /** Phase 5.5: HDHomeRun lineup import dialog. */
+    private fun promptHdHomeRunImport() {
+        val ctx = requireContext()
+        val pad = (ctx.resources.displayMetrics.density * 16).toInt()
+        val root = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(pad, pad, pad, pad)
+        }
+        val etBouquet = EditText(ctx).apply { hint = ctx.getString(R.string.hdhomerun_bouquet_hint) }
+        val etHost = EditText(ctx).apply {
+            hint = ctx.getString(R.string.hdhomerun_host_hint)
+            setText("hdhomerun.local")
+        }
+        val cbSkipDrm = CheckBox(ctx).apply {
+            text = ctx.getString(R.string.hdhomerun_skip_drm)
+            isChecked = true
+        }
+        val transcodeLabels = HdHomeRunClient.TRANSCODE_PROFILES.toTypedArray()
+        val transcodeSpinner = Spinner(ctx).apply {
+            adapter = ArrayAdapter(ctx, android.R.layout.simple_spinner_dropdown_item, transcodeLabels)
+            // Default to "heavy"
+            setSelection(0)
+        }
+        root.addView(etBouquet)
+        root.addView(etHost)
+        root.addView(cbSkipDrm)
+        root.addView(transcodeSpinner)
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.hdhomerun_dialog_title)
+            .setView(root)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val bouquetName = etBouquet.text.toString().trim()
+                val host = etHost.text.toString().trim()
+                if (bouquetName.isBlank() || host.isBlank()) return@setPositiveButton
+                val skipDrm = cbSkipDrm.isChecked
+                val transcode = transcodeLabels[transcodeSpinner.selectedItemPosition]
+                    .let { if (it == "none") "" else it }
+                doHdHomeRunImport(bouquetName, host, skipDrm, transcode)
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun doHdHomeRunImport(bouquetName: String, host: String, skipDrm: Boolean, transcode: String) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), getString(R.string.hdhomerun_discovering), Toast.LENGTH_SHORT).show()
+            val lineup = HdHomeRunClient.fetchLineup(host)
+            if (lineup.isEmpty()) {
+                Toast.makeText(requireContext(), getString(R.string.hdhomerun_no_lineup), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            val filtered = if (skipDrm) lineup.filter { !it.isProtected } else lineup
+            if (filtered.isEmpty()) {
+                Toast.makeText(requireContext(), getString(R.string.hdhomerun_all_drm), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            // Create bouquet on receiver
+            val createResult = repo.addBouquet(bouquetName, Enigma2Repository.MODE_TV)
+            if (!createResult.ok) {
+                Toast.makeText(requireContext(),
+                    getString(R.string.hdhomerun_create_failed, createResult.message ?: ""),
+                    Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            // Load bouquet list to find the new ref
+            val bouquets = repo.getUserBouquets()
+            val newBouquet = bouquets.lastOrNull { it.name == bouquetName }
+            if (newBouquet == null) {
+                Toast.makeText(requireContext(), getString(R.string.hdhomerun_bouquet_not_found), Toast.LENGTH_LONG).show()
+                return@launch
+            }
+            var added = 0
+            for (ch in filtered) {
+                val sRef = HdHomeRunClient.toEnigma2Ref(ch, transcode)
+                val svc = Service(ref = sRef, name = ch.name)
+                val r = repo.addServiceToBouquet(newBouquet.ref, svc)
+                if (r.ok) added++
+            }
+            BouquetEditorEvents.markDirty()
+            Toast.makeText(requireContext(),
+                getString(R.string.hdhomerun_import_done, added, filtered.size),
+                Toast.LENGTH_LONG).show()
+            load()
+        }
     }
 
     private fun promptRename(bouquet: Bouquet) {

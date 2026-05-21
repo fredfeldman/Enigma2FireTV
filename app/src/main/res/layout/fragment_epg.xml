@@ -25,6 +25,30 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/btn_epg_refresh"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_button"
+            android:text="@string/btn_epg_refresh"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:padding="8dp"
+            android:layout_marginEnd="6dp"
+            android:focusable="true" />
+
+        <TextView
+            android:id="@+id/btn_epg_export"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_button"
+            android:text="@string/btn_epg_export"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:padding="8dp"
+            android:layout_marginEnd="6dp"
+            android:focusable="true" />
+
+        <TextView
             android:id="@+id/btn_epg_search"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -36,6 +60,18 @@
             android:focusable="true" />
 
     </LinearLayout>
+
+    <!-- v1.1.0 cached-EPG banner (shown when the live fetch failed and we are serving from cache). -->
+    <TextView
+        android:id="@+id/tv_cache_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFD54F"
+        android:textColor="@android:color/black"
+        android:textSize="12sp"
+        android:padding="6dp"
+        android:gravity="center"
+        android:visibility="gone" />
 
     <!-- Loading indicator -->
     <ProgressBar

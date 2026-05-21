@@ -26,12 +26,17 @@ import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.Bouquet
 import com.enigma2.firetv.data.model.NowNextEvent
 import com.enigma2.firetv.data.model.Service
+import com.enigma2.firetv.data.model.IptvSource
+import com.enigma2.firetv.data.prefs.IptvPreferences
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
+import com.enigma2.firetv.data.api.RemoteReceiverApi
+import com.enigma2.firetv.ui.epgassign.EpgAssignDialog
 import com.enigma2.firetv.ui.epg.EpgFragment
 import com.enigma2.firetv.ui.epg.EpgSearchFragment
 import com.enigma2.firetv.ui.main.MainActivity
 import com.enigma2.firetv.ui.player.PlayerActivity
+import com.enigma2.firetv.ui.player.PlaybackRouter
 import com.enigma2.firetv.ui.recordings.RecordingsFragment
 import com.enigma2.firetv.ui.settings.SettingsActivity
 import com.enigma2.firetv.ui.timers.TimersFragment
@@ -59,6 +64,8 @@ class ChannelsFragment : Fragment() {
     private lateinit var btnTimers: TextView
     private lateinit var btnWol: TextView
     private lateinit var btnScreenshot: TextView
+    private lateinit var btnIptv: TextView
+    private lateinit var btnAddM3u: TextView
     private lateinit var tvNumberJump: TextView
     private lateinit var loadingIndicator: ProgressBar
     private lateinit var tvError: TextView
@@ -99,6 +106,8 @@ class ChannelsFragment : Fragment() {
         btnTimers = view.findViewById(R.id.btn_timers)
         btnWol = view.findViewById(R.id.btn_wol)
         btnScreenshot = view.findViewById(R.id.btn_screenshot)
+        btnIptv = view.findViewById(R.id.btn_iptv)
+        btnAddM3u = view.findViewById(R.id.btn_add_m3u)
         tvNumberJump = view.findViewById(R.id.tv_number_jump)
         loadingIndicator = view.findViewById(R.id.loading_indicator)
         tvError = view.findViewById(R.id.tv_error)
@@ -128,6 +137,10 @@ class ChannelsFragment : Fragment() {
         }
         btnWol.setOnClickListener { sendWakeOnLan() }
         btnScreenshot.setOnClickListener { showScreenshot() }
+        btnIptv.setOnClickListener {
+            startActivity(Intent(requireContext(), com.enigma2.firetv.ui.iptv.IptvActivity::class.java))
+        }
+        btnAddM3u.setOnClickListener { showAddM3uDialog() }
 
         if (viewModel.bouquets.value.isNullOrEmpty()) {
             viewModel.loadBouquets()
@@ -253,6 +266,18 @@ class ChannelsFragment : Fragment() {
     }
 
     private fun playChannel(service: Service) {
+        // IPTV channel: play directly without zapping the Enigma2 receiver
+        if (service.ref.startsWith(ChannelViewModel.IPTV_CH_PREFIX)) {
+            val iptvChannel = viewModel.iptvChannelMap[service.ref] ?: return
+            PlaybackRouter.play(
+                context = requireContext(),
+                streamUrl = iptvChannel.streamUrl,
+                channelName = service.name,
+                serviceRef = ""  // no Enigma2 zap; URL already resolved
+            )
+            return
+        }
+        // Enigma2 channel (existing logic)
         prefs.saveLastChannel(service.ref, service.name)
         // Fire-and-forget: also tune the receiver to this channel (if enabled)
         if (prefs.zapOnChannelChange) {
@@ -262,24 +287,40 @@ class ChannelsFragment : Fragment() {
         }
         val streamUrl = prefs.streamUrl(service.ref)
         val channelIdx = fullChannelList.indexOfFirst { it.ref == service.ref }.coerceAtLeast(0)
-        val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putExtra(PlayerActivity.EXTRA_STREAM_URL, streamUrl)
-            putExtra(PlayerActivity.EXTRA_CHANNEL_NAME, service.name)
-            putExtra(PlayerActivity.EXTRA_SERVICE_REF, service.ref)
-            putStringArrayListExtra(PlayerActivity.EXTRA_CHANNEL_REFS, ArrayList(fullChannelList.map { it.ref }))
-            putStringArrayListExtra(PlayerActivity.EXTRA_CHANNEL_NAMES_LIST, ArrayList(fullChannelList.map { it.name }))
-            putExtra(PlayerActivity.EXTRA_CHANNEL_INDEX, channelIdx)
-        }
-        startActivity(intent)
+        PlaybackRouter.play(
+            context = requireContext(),
+            streamUrl = streamUrl,
+            channelName = service.name,
+            serviceRef = service.ref,
+            channelRefs = fullChannelList.map { it.ref },
+            channelNames = fullChannelList.map { it.name },
+            channelIndex = channelIdx
+        )
     }
 
     private fun showChannelInfo(service: Service) {
+        // IPTV channels: simplified menu (no Enigma2-specific actions)
+        if (service.ref.startsWith(ChannelViewModel.IPTV_CH_PREFIX)) {
+            AlertDialog.Builder(requireContext())
+                .setTitle(service.name)
+                .setItems(arrayOf(getString(R.string.play))) { _, _ -> playChannel(service) }
+                .show()
+            return
+        }
         val isFav = prefs.isFavorite(service.ref)
         val favOption = if (isFav) getString(R.string.favorite_remove) else getString(R.string.favorite_add)
-        val options = arrayOf(getString(R.string.channel_menu_epg), favOption, getString(R.string.zap_receiver))
+        // Phase 6.1: add "Zap on…" when ≥2 device profiles exist
+        val otherDevices = prefs.devices.filter { it.id != prefs.activeDeviceId }
+        val options = mutableListOf(
+            getString(R.string.channel_menu_epg),
+            favOption,
+            getString(R.string.zap_receiver)
+        )
+        if (otherDevices.isNotEmpty()) options.add(getString(R.string.zap_on_label))
+        if (BuildConfig.ENABLE_EPG_ASSIGN) options.add(getString(R.string.epgassign_assign_channel))
         AlertDialog.Builder(requireContext())
             .setTitle(service.name)
-            .setItems(options) { _, which ->
+            .setItems(options.toTypedArray()) { _, which ->
                 when (which) {
                     0 -> openChannelEpg(service)
                     1 -> {
@@ -300,8 +341,40 @@ class ChannelsFragment : Fragment() {
                             }
                         }
                     }
+                    3 -> {
+                        if (BuildConfig.ENABLE_EPG_ASSIGN && otherDevices.isEmpty()) {
+                            EpgAssignDialog.show(requireContext(), viewLifecycleOwner, service.ref, service.name)
+                        } else {
+                            showZapOnPicker(service, otherDevices)
+                        }
+                    }
+                    4 -> EpgAssignDialog.show(requireContext(), viewLifecycleOwner, service.ref, service.name)
                 }
             }
+            .show()
+    }
+
+    /** Phase 6.1: Sends the channel to a secondary receiver. */
+    private fun showZapOnPicker(
+        service: Service,
+        others: List<com.enigma2.firetv.data.model.DeviceProfile>
+    ) {
+        val labels = others.map { it.name }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.zap_on_pick_title))
+            .setItems(labels) { _, idx ->
+                val target = others[idx]
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val ok = RemoteReceiverApi.zap(target, service.ref)
+                    Toast.makeText(
+                        requireContext(),
+                        if (ok) getString(R.string.zap_on_sent, service.name, target.name)
+                        else getString(R.string.zap_on_failed, target.name),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
             .show()
     }
 
@@ -335,14 +408,67 @@ class ChannelsFragment : Fragment() {
             .commit()
     }
 
+    // ── Add M3U Source ────────────────────────────────────────────────────────
+
+    private fun showAddM3uDialog() {
+        val ctx = requireContext()
+        val layout = android.widget.LinearLayout(ctx).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(64, 32, 64, 0)
+        }
+        val etName = EditText(ctx).apply {
+            hint = getString(R.string.m3u_source_name_hint)
+        }
+        val etUrl = EditText(ctx).apply {
+            hint = getString(R.string.m3u_source_url_hint)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                        android.text.InputType.TYPE_TEXT_VARIATION_URI
+        }
+        layout.addView(etName)
+        layout.addView(etUrl)
+        AlertDialog.Builder(ctx)
+            .setTitle(getString(R.string.m3u_source_add_title))
+            .setView(layout)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val url = etUrl.text.toString().trim()
+                if (url.isBlank()) {
+                    Toast.makeText(ctx, getString(R.string.iptv_m3u_required), Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val name = etName.text.toString().trim().ifBlank { url }
+                val source = IptvSource(name = name, m3uUrl = url)
+                IptvPreferences(ctx).addSource(source)
+                viewModel.refreshIptvSource(source)
+                Toast.makeText(ctx, getString(R.string.m3u_source_loading, name), Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     // ── Wake-on-LAN ───────────────────────────────────────────────────────────
 
     private fun sendWakeOnLan() {
-        val mac = prefs.activeDevice?.macAddress?.trim() ?: ""
-        if (mac.isBlank()) {
-            Toast.makeText(requireContext(), getString(R.string.wol_no_mac), Toast.LENGTH_LONG).show()
-            return
+        // Phase 6.3: when ≥2 devices have MACs, show a picker
+        val devicesWithMac = prefs.devices.filter { it.macAddress.isNotBlank() }
+        when {
+            devicesWithMac.isEmpty() -> {
+                Toast.makeText(requireContext(), getString(R.string.wol_no_mac), Toast.LENGTH_LONG).show()
+            }
+            devicesWithMac.size == 1 -> {
+                doWol(devicesWithMac[0].macAddress)
+            }
+            else -> {
+                val labels = devicesWithMac.map { it.name }.toTypedArray()
+                AlertDialog.Builder(requireContext())
+                    .setTitle(getString(R.string.wol_pick_title))
+                    .setItems(labels) { _, idx -> doWol(devicesWithMac[idx].macAddress) }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
         }
+    }
+
+    private fun doWol(mac: String) {
         viewLifecycleOwner.lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) { WakeOnLan.send(mac) }
             Toast.makeText(

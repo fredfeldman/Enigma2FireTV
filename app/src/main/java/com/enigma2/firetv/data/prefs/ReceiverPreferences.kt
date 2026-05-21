@@ -248,8 +248,9 @@ class ReceiverPreferences(context: Context) {
         get() = host.isNotBlank()
 
     fun streamUrl(serviceRef: String): String {
-        val scheme = if (useHttps) "https" else "http"
-        return "$scheme://$host:8001/$serviceRef"
+        // Port 8001 is Enigma2's raw MPEG-TS HTTP server — it is always plain HTTP
+        // regardless of whether the OpenWebif API uses HTTPS.
+        return "http://$host:8001/$serviceRef"
     }
 
     fun piconUrl(piconPath: String): String {
@@ -323,6 +324,40 @@ class ReceiverPreferences(context: Context) {
         private const val KEY_RECORDINGS_SORT = "recordings_sort_order"
         private const val KEY_ZAP_ON_CHANGE = "zap_on_channel_change"
         private const val KEY_BOUQUET_OVERRIDES = "bouquet_overrides_json"
+        private const val KEY_PARENTAL_PIN_HASH = "parental_app_lock/pin_hash"
+        // v1.2.0 Phase 5: external player prefs
+        const val KEY_PLAYER_MODE = "player_mode"
+        const val KEY_PREFERRED_EXTERNAL_PACKAGE = "preferred_external_package"
+        // v1.5.0: Picture-in-Picture
+        private const val KEY_PIP_ENABLED = "pip_enabled"
+    }
+
+    // ── v1.5.0 Picture-in-Picture ─────────────────────────────────────────
+    var pipEnabled: Boolean
+        get() = prefs.getBoolean(KEY_PIP_ENABLED, true)
+        set(value) = prefs.edit { putBoolean(KEY_PIP_ENABLED, value) }
+
+    // ── v1.1.0 app-side parental PIN (SHA-256 hex). ───────────────────────
+    /** Empty when no PIN has been set. */
+    var parentalPinHash: String
+        get() = prefs.getString(KEY_PARENTAL_PIN_HASH, "") ?: ""
+        set(value) = prefs.edit { putString(KEY_PARENTAL_PIN_HASH, value) }
+
+    fun setParentalPin(rawPin: String) {
+        parentalPinHash = if (rawPin.isBlank()) "" else sha256Hex(rawPin)
+    }
+
+    fun verifyParentalPin(rawPin: String): Boolean {
+        val stored = parentalPinHash
+        return stored.isNotEmpty() && stored.equals(sha256Hex(rawPin), ignoreCase = true)
+    }
+
+    private fun sha256Hex(s: String): String {
+        val md = java.security.MessageDigest.getInstance("SHA-256")
+        val bytes = md.digest(s.toByteArray(Charsets.UTF_8))
+        return buildString(bytes.size * 2) {
+            for (b in bytes) append("%02x".format(b))
+        }
     }
 
     // ── Last played channel (auto-resume) ────────────────────────────────
@@ -352,5 +387,73 @@ class ReceiverPreferences(context: Context) {
             putString(KEY_LAST_CHANNEL_REF, ref)
             putString(KEY_LAST_CHANNEL_NAME, name)
         }
+    }
+
+    // ── v1.2.0 Phase 5: external player preference ────────────────────────
+
+    /** One of "internal" / "external" / "ask". Default "internal". */
+    var playerMode: String
+        get() = prefs.getString(KEY_PLAYER_MODE, "internal") ?: "internal"
+        set(value) = prefs.edit { putString(KEY_PLAYER_MODE, value) }
+
+    /** Package name of the preferred external player, or empty string = show chooser. */
+    var preferredExternalPackage: String
+        get() = prefs.getString(KEY_PREFERRED_EXTERNAL_PACKAGE, "") ?: ""
+        set(value) = prefs.edit { putString(KEY_PREFERRED_EXTERNAL_PACKAGE, value) }
+
+    // ── v1.2.0 Phase 6: profile export/import ────────────────────────────
+
+    /**
+     * Returns a JSON string containing all device profiles.
+     * When [includePasswords] is false, the password field is omitted.
+     */
+    fun exportProfilesJson(includePasswords: Boolean): String {
+        val list = devices.map { p ->
+            mapOf(
+                "id" to p.id,
+                "name" to p.name,
+                "host" to p.host,
+                "port" to p.port,
+                "useHttps" to p.useHttps,
+                "username" to p.username,
+                "password" to (if (includePasswords) p.password else ""),
+                "macAddress" to p.macAddress
+            )
+        }
+        return gson.toJson(mapOf("version" to 1, "profiles" to list))
+    }
+
+    /**
+     * Merges profiles from a JSON string (produced by [exportProfilesJson]).
+     * Profiles with matching id are updated; absent password fields never overwrite
+     * an existing value. New profiles are appended.
+     * Returns the number of profiles imported.
+     */
+    fun importProfilesJson(json: String): Int {
+        val root = try { org.json.JSONObject(json) } catch (_: Exception) { return 0 }
+        val arr = root.optJSONArray("profiles") ?: return 0
+        val existing = devices.associateBy { it.id }.toMutableMap()
+        var count = 0
+        for (i in 0 until arr.length()) {
+            val obj = arr.optJSONObject(i) ?: continue
+            val id = obj.optString("id").takeIf { it.isNotBlank() } ?: continue
+            val current = existing[id]
+            val pw = obj.optString("password").let { imported ->
+                if (imported.isBlank()) current?.password ?: "" else imported
+            }
+            existing[id] = DeviceProfile(
+                id = id,
+                name = obj.optString("name", current?.name ?: ""),
+                host = obj.optString("host", current?.host ?: ""),
+                port = obj.optInt("port", current?.port ?: 80),
+                useHttps = obj.optBoolean("useHttps", current?.useHttps ?: false),
+                username = obj.optString("username", current?.username ?: ""),
+                password = pw,
+                macAddress = obj.optString("macAddress", current?.macAddress ?: "")
+            )
+            count++
+        }
+        devices = existing.values.toList()
+        return count
     }
 }

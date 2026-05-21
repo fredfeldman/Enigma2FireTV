@@ -22,12 +22,17 @@ import androidx.media3.common.C
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.ui.PlayerView
 import android.app.AlertDialog
+import android.app.PictureInPictureParams
+import android.content.res.Configuration
+import android.os.Build
+import android.util.Rational
 import android.widget.Toast
 import com.bumptech.glide.Glide
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
 import com.enigma2.firetv.data.repository.Enigma2Repository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -103,6 +108,7 @@ class PlayerActivity : FragmentActivity() {
     private var channelIndex: Int = 0
 
     private var player: ExoPlayer? = null
+    private var streamOkHttpClient: okhttp3.OkHttpClient? = null
     private lateinit var prefs: ReceiverPreferences
     private val repository = Enigma2Repository()
     private val handler = Handler(Looper.getMainLooper())
@@ -216,7 +222,19 @@ class PlayerActivity : FragmentActivity() {
                 .into(ivChannelLogo)
         }
 
-        initPlayer(streamUrl)
+        // For live channels, ask the receiver to tune the service before we open
+        // the stream socket on port 8001. Without this, the tuner may not be
+        // locked on the requested service and the stream fails to deliver.
+        if (serviceRef.isNotBlank() && playlistUrls.isEmpty()) {
+            lifecycleScope.launch {
+                try {
+                    withContext(kotlinx.coroutines.Dispatchers.IO) { repository.zap(serviceRef) }
+                } catch (_: Exception) { /* best-effort */ }
+                initPlayer(streamUrl)
+            }
+        } else {
+            initPlayer(streamUrl)
+        }
 
         // For recordings, show pre-supplied description instead of fetching live EPG
         val description = intent.getStringExtra(EXTRA_DESCRIPTION)
@@ -286,6 +304,7 @@ class PlayerActivity : FragmentActivity() {
                 }
             }
             .build()
+            .also { streamOkHttpClient = it }
 
         val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
 
@@ -320,7 +339,14 @@ class PlayerActivity : FragmentActivity() {
 
                     override fun onPlayerError(error: PlaybackException) {
                         showLoading(false)
-                        showError("${getString(R.string.stream_error)}\n${error.message}")
+                        // Only offer external fallback for live channel streams (not recordings/playlists)
+                        val isLive = playlistUrls.isEmpty() && intent.getStringExtra(EXTRA_SERVICE_REF)?.isNotBlank() == true
+                        val externals = PlaybackRouter.installedExternals(this@PlayerActivity)
+                        if (isLive && externals.isNotEmpty()) {
+                            offerExternalPlayer(externals, error)
+                        } else {
+                            showError("${getString(R.string.stream_error)}\n${error.message}\n\n${currentStreamUrl}")
+                        }
                     }
                 })
 
@@ -612,6 +638,50 @@ class PlayerActivity : FragmentActivity() {
         tvError.visibility = View.VISIBLE
     }
 
+    /**
+     * Shown when ExoPlayer throws a source error on a live channel and at least
+     * one recognised external player is installed. Lets the user retry in VLC,
+     * MX Player, etc. without going to Settings first.
+     */
+    private fun offerExternalPlayer(externals: List<String>, cause: PlaybackException) {
+        val labels = externals.map { PlaybackRouter.pkgLabel(it) }.toTypedArray()
+        // setMessage and setItems share the same content area; use setItems only so
+        // the app list is actually visible. Title carries the prompt text.
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(R.string.player_fallback_title)
+            .setItems(labels) { _, idx ->
+                // Release ExoPlayer and force-close the pooled TCP socket on port 8001
+                // so VLC/Kodi can connect immediately (Enigma2 allows one client at a time).
+                player?.stop()
+                player?.release()
+                player = null
+                streamOkHttpClient?.connectionPool?.evictAll()
+                streamOkHttpClient = null
+                // Re-zap the receiver to ensure the tuner is locked on this service
+                // before VLC opens the stream socket.
+                val sref = intent.getStringExtra(EXTRA_SERVICE_REF) ?: ""
+                val pkg = externals[idx]
+                // For IPTV-type service refs, use the real stream URL rather than the
+                // port-8001 URL (which the external player can't resolve).
+                val urlForExternal = com.enigma2.firetv.data.repository.Enigma2Repository
+                    .extractIptvUrl(sref) ?: currentStreamUrl
+                if (sref.isNotBlank() && !com.enigma2.firetv.data.repository.Enigma2Repository.isIptvRef(sref)) {
+                    lifecycleScope.launch {
+                        try {
+                            withContext(kotlinx.coroutines.Dispatchers.IO) { repository.zap(sref) }
+                        } catch (_: Exception) { }
+                        val launched = PlaybackRouter.playExternal(this@PlayerActivity, urlForExternal, "video/*", pkg)
+                        if (launched) finish()
+                    }
+                } else {
+                    val launched = PlaybackRouter.playExternal(this, urlForExternal, "video/*", pkg)
+                    if (launched) finish()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
     // -------------------------------------------------------------------------
     // Key events (FireTV remote)
     // -------------------------------------------------------------------------
@@ -857,7 +927,10 @@ class PlayerActivity : FragmentActivity() {
 
     override fun onPause() {
         super.onPause()
-        player?.pause()
+        // Don't pause playback when shrinking into PiP — the player should keep running.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isInPictureInPictureMode) {
+            player?.pause()
+        }
     }
 
     override fun onStop() {
@@ -892,5 +965,37 @@ class PlayerActivity : FragmentActivity() {
         handler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
+    }
+
+    // -------------------------------------------------------------------------
+    // Picture-in-Picture (v1.5.0)
+    // -------------------------------------------------------------------------
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && prefs.pipEnabled) {
+            val videoSize = player?.videoSize
+            val aspect = if (videoSize != null && videoSize.width > 0 && videoSize.height > 0)
+                Rational(videoSize.width, videoSize.height)
+            else
+                Rational(16, 9)
+            val params = PictureInPictureParams.Builder().setAspectRatio(aspect).build()
+            enterPictureInPictureMode(params)
+        }
+    }
+
+    override fun onPictureInPictureModeChanged(
+        isInPictureInPictureMode: Boolean,
+        newConfig: Configuration
+    ) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        if (isInPictureInPictureMode) {
+            // Hide all chrome — only the video surface should be visible in the PiP window.
+            osdOverlay.visibility = View.GONE
+            handler.removeCallbacks(hideOsdRunnable)
+        } else {
+            // Returning from PiP: resume playback if the user hadn't manually paused.
+            if (!userPaused) player?.play()
+        }
     }
 }

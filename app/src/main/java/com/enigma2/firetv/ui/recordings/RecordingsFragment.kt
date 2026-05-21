@@ -20,10 +20,13 @@ import com.enigma2.firetv.data.model.PlaylistEntry
 import com.enigma2.firetv.data.model.Recording
 import com.enigma2.firetv.data.prefs.PlaylistPreferences
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
+import com.enigma2.firetv.data.repository.Enigma2Repository
 import com.enigma2.firetv.ui.player.PlayerActivity
 import com.enigma2.firetv.ui.playlists.PlaylistManagerFragment
 import com.enigma2.firetv.ui.viewmodel.RecordingViewModel
 import com.enigma2.firetv.ui.viewmodel.SortOrder
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -144,9 +147,18 @@ class RecordingsFragment : Fragment() {
     }
 
     private fun showRecordingActionsDialog(recording: Recording) {
+        // v1.1.0: rename / move / watched / edit-tags ported from Enigma2Android.
+        val watched = recordingHasWatchedTag(recording)
+        val watchedLabel = getString(
+            if (watched) R.string.action_mark_unwatched else R.string.action_mark_watched
+        )
         val actions = arrayOf(
             getString(R.string.action_play),
             getString(R.string.action_add_to_playlist),
+            getString(R.string.action_rename_recording),
+            getString(R.string.action_move_recording),
+            watchedLabel,
+            getString(R.string.action_edit_tags),
             getString(R.string.action_select_multiple),
             getString(R.string.action_delete_recording)
         )
@@ -156,11 +168,155 @@ class RecordingsFragment : Fragment() {
                 when (which) {
                     0 -> playRecording(recording)
                     1 -> showAddToPlaylistDialog(recording)
-                    2 -> viewModel.enterSelectionMode(recording)
-                    3 -> confirmDeleteRecording(recording)
+                    2 -> showRenameDialog(recording)
+                    3 -> showMoveDialog(recording)
+                    4 -> toggleWatched(recording, watched)
+                    5 -> showEditTagsDialog(recording)
+                    6 -> viewModel.enterSelectionMode(recording)
+                    7 -> confirmDeleteRecording(recording)
                 }
             }
             .show()
+    }
+
+    // ---------- v1.1.0 recording-management helpers ----------
+
+    /**
+     * "Watched" is encoded as a tag on the recording. OpenWebif does not
+     * surface tags in `api/movielist`, so we use the description as a best-effort
+     * proxy: a [WATCHED] prefix marks a watched recording. Server-side persistence
+     * still uses `api/movietags` so the state survives across clients.
+     */
+    private fun recordingHasWatchedTag(recording: Recording): Boolean =
+        recording.synopsis.contains("[Watched]", ignoreCase = true)
+
+    private fun showRenameDialog(recording: Recording) {
+        val sref = recording.serviceRef ?: return
+        val et = EditText(requireContext()).apply {
+            hint = getString(R.string.rename_recording_hint)
+            setText(recording.displayTitle)
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.rename_recording_title)
+            .setView(et)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val newName = et.text.toString().trim()
+                if (newName.isEmpty()) return@setPositiveButton
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val ok = Enigma2Repository().renameMovie(sref, newName)
+                    if (!isAdded) return@launch
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        getString(if (ok) R.string.rename_recording_ok else R.string.rename_recording_failed),
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    if (ok) viewModel.loadRecordings()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showMoveDialog(recording: Recording) {
+        val sref = recording.serviceRef ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val locations = Enigma2Repository().getRecordingLocations()?.locations.orEmpty()
+            if (!isAdded) return@launch
+            if (locations.isEmpty()) {
+                android.widget.Toast.makeText(
+                    requireContext(),
+                    R.string.move_recording_no_locations,
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+            val arr = locations.toTypedArray()
+            AlertDialog.Builder(requireContext())
+                .setTitle(R.string.move_recording_title)
+                .setItems(arr) { _, which ->
+                    val target = arr[which]
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        val ok = Enigma2Repository().moveMovie(sref, target)
+                        if (!isAdded) return@launch
+                        android.widget.Toast.makeText(
+                            requireContext(),
+                            if (ok) getString(R.string.move_recording_ok, target)
+                            else getString(R.string.move_recording_failed),
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                        if (ok) viewModel.loadRecordings()
+                    }
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun toggleWatched(recording: Recording, currentlyWatched: Boolean) {
+        val sref = recording.serviceRef ?: return
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = if (currentlyWatched)
+                Enigma2Repository().updateMovieTags(sref, add = null, remove = listOf("Watched"))
+            else
+                Enigma2Repository().updateMovieTags(sref, add = listOf("Watched"), remove = null)
+            if (!isAdded) return@launch
+            val msgRes = when {
+                !ok -> R.string.watched_tag_failed
+                currentlyWatched -> R.string.watched_tag_removed
+                else -> R.string.watched_tag_added
+            }
+            android.widget.Toast.makeText(requireContext(), msgRes, android.widget.Toast.LENGTH_SHORT).show()
+            if (ok) viewModel.loadRecordings()
+        }
+    }
+
+    private fun showEditTagsDialog(recording: Recording) {
+        val sref = recording.serviceRef ?: return
+        val current = extractTagsFromSynopsis(recording.synopsis)
+        val et = EditText(requireContext()).apply {
+            hint = getString(R.string.edit_tags_hint)
+            setText(current.joinToString(" "))
+            setSingleLine(true)
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.edit_tags_title)
+            .setView(et)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                val newTags = et.text.toString()
+                    .split(Regex("\\s+"))
+                    .filter { it.isNotBlank() }
+                val toAdd = newTags - current.toSet()
+                val toRemove = current - newTags.toSet()
+                if (toAdd.isEmpty() && toRemove.isEmpty()) return@setPositiveButton
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val ok = Enigma2Repository().updateMovieTags(
+                        sref,
+                        add = toAdd.takeIf { it.isNotEmpty() },
+                        remove = toRemove.takeIf { it.isNotEmpty() }
+                    )
+                    if (!isAdded) return@launch
+                    android.widget.Toast.makeText(
+                        requireContext(),
+                        if (ok) R.string.edit_tags_ok else R.string.edit_tags_failed,
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    if (ok) viewModel.loadRecordings()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    /**
+     * Best-effort extraction of "[Tag1] [Tag2]" style markers from the
+     * synopsis. OpenWebif `api/movielist` does not return the tag field,
+     * so this is the only signal we have client-side.
+     */
+    private fun extractTagsFromSynopsis(synopsis: String): List<String> {
+        if (synopsis.isBlank()) return emptyList()
+        val rx = Regex("\\[([A-Za-z0-9_]+)]")
+        return rx.findAll(synopsis).map { it.groupValues[1] }.distinct().toList()
     }
 
     private fun confirmDeleteRecording(recording: Recording) {

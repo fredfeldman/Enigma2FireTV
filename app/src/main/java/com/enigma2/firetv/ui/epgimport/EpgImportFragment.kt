@@ -14,7 +14,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.enigma2.firetv.R
 import com.enigma2.firetv.data.repository.Enigma2Repository
 import com.enigma2.firetv.util.ApiErrors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Read-only viewer for EPGImport `*.sources.xml` files installed in
@@ -31,6 +33,7 @@ class EpgImportFragment : Fragment() {
     private lateinit var loading: ProgressBar
     private lateinit var empty: TextView
     private lateinit var btnRefresh: TextView
+    private lateinit var btnRunImport: TextView
 
     private val repo = Enigma2Repository()
     private val adapter = EpgImportFilesAdapter { path -> openDetail(path) }
@@ -46,11 +49,13 @@ class EpgImportFragment : Fragment() {
         loading = view.findViewById(R.id.epi_loading)
         empty = view.findViewById(R.id.tv_epi_empty)
         btnRefresh = view.findViewById(R.id.btn_epi_refresh)
+        btnRunImport = view.findViewById(R.id.btn_epi_run_import)
 
         rv.layoutManager = LinearLayoutManager(requireContext())
         rv.adapter = adapter
 
         btnRefresh.setOnClickListener { load() }
+        btnRunImport.setOnClickListener { runImport() }
         load()
     }
 
@@ -79,5 +84,16 @@ class EpgImportFragment : Fragment() {
             .replace(R.id.epgimport_container, EpgImportDetailFragment.newInstance(path))
             .addToBackStack(null)
             .commit()
+    }
+
+    private fun runImport() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val ok = try {
+                withContext(Dispatchers.IO) { repo.triggerEpgRefresh() }
+            } catch (_: Exception) { false }
+            val msg = if (ok) getString(R.string.epgimport_run_triggered)
+                      else getString(R.string.epgimport_run_failed)
+            Toast.makeText(requireContext(), msg, Toast.LENGTH_SHORT).show()
+        }
     }
 }

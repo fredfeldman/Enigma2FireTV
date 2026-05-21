@@ -1,7 +1,10 @@
 package com.enigma2.firetv.ui.epg
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -15,6 +18,8 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -23,13 +28,22 @@ import com.enigma2.firetv.R
 import com.enigma2.firetv.data.model.EpgEvent
 import com.enigma2.firetv.data.model.Service
 import com.enigma2.firetv.data.model.Timer
+import com.enigma2.firetv.data.prefs.EpgReminder
 import com.enigma2.firetv.data.prefs.ReceiverPreferences
+import com.enigma2.firetv.data.prefs.RemindersStore
 import com.enigma2.firetv.data.repository.Enigma2Repository
+import com.enigma2.firetv.service.ReminderReceiver
+import com.enigma2.firetv.ui.player.PlaybackRouter
 import com.enigma2.firetv.ui.player.PlayerActivity
 import com.enigma2.firetv.ui.epg.EpgSearchFragment
+import com.enigma2.firetv.util.EpgExporter
+import com.enigma2.firetv.BuildConfig
+import com.enigma2.firetv.ui.epgassign.EpgAssignDialog
 import com.enigma2.firetv.ui.viewmodel.ChannelViewModel
 import com.enigma2.firetv.ui.viewmodel.EpgViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -58,8 +72,27 @@ class EpgFragment : Fragment() {
     private lateinit var eventInfoBar: LinearLayout
     private lateinit var btnRecord: Button
     private lateinit var btnEpgSearch: TextView
+    private lateinit var btnEpgRefresh: TextView
+    private lateinit var btnEpgExport: TextView
+    private lateinit var tvCacheBanner: TextView
 
     private var selectedEvent: EpgEvent? = null
+
+    /** v1.1.0: pending reminder waiting for POST_NOTIFICATIONS grant on Android 13+. */
+    private var pendingReminder: EpgReminder? = null
+    private val notifPermLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            val pending = pendingReminder ?: return@registerForActivityResult
+            pendingReminder = null
+            commitReminder(pending)
+            if (!granted && isAdded) {
+                Toast.makeText(
+                    requireContext(),
+                    R.string.reminder_notif_permission_denied,
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
 
     /** Pinned channel column adapter: shows picon + channel name aligned to EPG rows. */
     private inner class EpgChannelAdapter(private val services: List<Service>) :
@@ -146,6 +179,9 @@ class EpgFragment : Fragment() {
         eventInfoBar = view.findViewById(R.id.event_info_bar)
         btnRecord = view.findViewById(R.id.btn_record)
         btnEpgSearch = view.findViewById(R.id.btn_epg_search)
+        btnEpgRefresh = view.findViewById(R.id.btn_epg_refresh)
+        btnEpgExport = view.findViewById(R.id.btn_epg_export)
+        tvCacheBanner = view.findViewById(R.id.tv_cache_banner)
 
         btnRecord.setOnClickListener { selectedEvent?.let { confirmRecord(it) } }
         btnEpgSearch.setOnClickListener {
@@ -154,6 +190,8 @@ class EpgFragment : Fragment() {
                 .addToBackStack(null)
                 .commit()
         }
+        btnEpgRefresh.setOnClickListener { onRefreshClicked() }
+        btnEpgExport.setOnClickListener { onExportClicked() }
 
         // Sync time ruler scroll with grid scroll
         epgHScroll.setOnScrollChangeListener { _, scrollX, _, _, _ ->
@@ -166,7 +204,8 @@ class EpgFragment : Fragment() {
         // EPG grid callbacks
         epgGrid.onEventSelected = { event -> updateInfoBar(event) }
         epgGrid.onEventClicked = { _, service -> launchPlayer(service) }
-        epgGrid.onEventLongPressed = { event -> confirmRecord(event) }
+        // v1.1.0: long-press opens a chooser with Record + Remind me (when future).
+        epgGrid.onEventLongPressed = { event -> showEventActionsDialog(event) }
 
         observeViewModel()
     }
@@ -190,6 +229,97 @@ class EpgFragment : Fragment() {
                 populateEpg(listOf(service), mapOf(serviceRef to events))
             }
         }
+
+        // v1.1.0 cached-EPG banner
+        epgViewModel.cacheBannerAgeMin.observe(viewLifecycleOwner) { ageMin ->
+            if (ageMin >= 0) {
+                tvCacheBanner.text = getString(R.string.epg_cache_banner, ageMin)
+                tvCacheBanner.visibility = View.VISIBLE
+            } else {
+                tvCacheBanner.visibility = View.GONE
+            }
+        }
+    }
+
+    // ---------- v1.1.0 Phase 4: refresh + export ----------
+
+    private fun onRefreshClicked() {
+        val bouquetRef = arguments?.getString(ARG_BOUQUET_REF) ?: ""
+        if (bouquetRef.isBlank()) {
+            // Single-service mode: ask the receiver to refresh just this sref.
+            val serviceRef = arguments?.getString(ARG_SERVICE_REF) ?: return
+            viewLifecycleOwner.lifecycleScope.launch {
+                runCatching { Enigma2Repository().refreshEpgForService(serviceRef) }
+                if (isAdded) {
+                    Toast.makeText(requireContext(), R.string.epg_refresh_requested, Toast.LENGTH_SHORT).show()
+                    epgViewModel.loadEpgForService(serviceRef)
+                }
+            }
+        } else {
+            Toast.makeText(requireContext(), R.string.epg_refresh_requested, Toast.LENGTH_SHORT).show()
+            epgViewModel.refreshEpg(bouquetRef)
+        }
+    }
+
+    private fun onExportClicked() {
+        val map = epgViewModel.epgMap.value.orEmpty()
+        val services = channelViewModel.channels.value.orEmpty()
+            .filter { map.containsKey(it.ref) && map[it.ref]?.isNotEmpty() == true }
+        if (services.isEmpty()) {
+            // Fall back to whatever single-service EPG we have on screen.
+            val sref = arguments?.getString(ARG_SERVICE_REF).orEmpty()
+            val sname = arguments?.getString(ARG_SERVICE_NAME).orEmpty()
+            val single = epgViewModel.serviceEpg.value.orEmpty()
+            if (sref.isBlank() || single.isEmpty()) {
+                Toast.makeText(requireContext(), R.string.epg_export_no_channels, Toast.LENGTH_SHORT).show()
+                return
+            }
+            showFormatPicker(sname.ifBlank { sref }, sref, single)
+            return
+        }
+        val names = services.map { it.name.ifBlank { it.ref } }.toTypedArray()
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.epg_export_dialog_title)
+            .setItems(names) { _, which ->
+                val svc = services[which]
+                val events = map[svc.ref].orEmpty()
+                if (events.isEmpty()) {
+                    Toast.makeText(requireContext(), R.string.epg_export_no_events, Toast.LENGTH_SHORT).show()
+                } else {
+                    showFormatPicker(svc.name.ifBlank { svc.ref }, svc.ref, events)
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun showFormatPicker(
+        channelName: String,
+        channelRef: String,
+        events: List<EpgEvent>
+    ) {
+        val formats = arrayOf(
+            getString(R.string.epg_export_xmltv),
+            getString(R.string.epg_export_json)
+        )
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.epg_export_format_title)
+            .setItems(formats) { _, which ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val ctx = requireContext().applicationContext
+                    val result = withContext(Dispatchers.IO) {
+                        if (which == 0) EpgExporter.exportXmltv(ctx, channelName, channelRef, events)
+                        else EpgExporter.exportJson(ctx, channelName, events)
+                    }
+                    if (!isAdded) return@launch
+                    val msg = if (result.success)
+                        getString(R.string.epg_export_ok, result.displayName)
+                    else getString(R.string.epg_export_failed)
+                    Toast.makeText(requireContext(), msg, Toast.LENGTH_LONG).show()
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun populateEpg(services: List<Service>, epgMap: Map<String, List<EpgEvent>>) {
@@ -234,6 +364,86 @@ class EpgFragment : Fragment() {
         btnRecord.visibility = if (event.endMs > System.currentTimeMillis()) View.VISIBLE else View.GONE
     }
 
+    // ---------- v1.1.0: long-press event options ----------
+
+    private fun showEventActionsDialog(event: EpgEvent) {
+        val isFuture = event.beginMs > System.currentTimeMillis()
+        val store = RemindersStore(requireContext())
+        val rid = store.newId(event.serviceRef, event.beginTimestamp)
+        val alreadyReminded = store.all().any { it.id == rid }
+        val actions = mutableListOf<String>()
+        val handlers = mutableListOf<() -> Unit>()
+        if (event.endMs > System.currentTimeMillis()) {
+            actions += getString(R.string.action_record)
+            handlers += { confirmRecord(event) }
+        }
+        if (isFuture) {
+            if (alreadyReminded) {
+                actions += getString(R.string.action_cancel_reminder)
+                handlers += { cancelReminder(event, rid) }
+            } else {
+                actions += getString(R.string.action_remind_me)
+                handlers += { addReminder(event, rid) }
+            }
+        }
+        if (BuildConfig.ENABLE_EPG_ASSIGN) {
+            actions += getString(R.string.epgassign_assign_channel)
+            handlers += { EpgAssignDialog.show(requireContext(), viewLifecycleOwner, event.serviceRef, event.serviceName) }
+        }
+        if (actions.isEmpty()) return
+        AlertDialog.Builder(requireContext())
+            .setTitle(R.string.reminder_event_options)
+            .setItems(actions.toTypedArray()) { _, which -> handlers[which].invoke() }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun addReminder(event: EpgEvent, rid: Int) {
+        if (event.beginMs <= System.currentTimeMillis()) {
+            Toast.makeText(requireContext(), R.string.reminder_past_event, Toast.LENGTH_SHORT).show()
+            return
+        }
+        val reminder = EpgReminder(
+            id = rid,
+            title = event.title,
+            channelName = event.serviceName,
+            sref = event.serviceRef,
+            startTimestampSec = event.beginTimestamp
+        )
+        // On Android 13+ POST_NOTIFICATIONS is runtime; without it the
+        // alarm fires but the notification is silently dropped. Ask once,
+        // schedule the reminder regardless of the user's choice.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val granted = ContextCompat.checkSelfPermission(
+                requireContext(),
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+            if (!granted) {
+                pendingReminder = reminder
+                notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                return
+            }
+        }
+        commitReminder(reminder)
+    }
+
+    private fun commitReminder(reminder: EpgReminder) {
+        RemindersStore(requireContext()).add(reminder)
+        ReminderReceiver.schedule(requireContext(), reminder)
+        if (!isAdded) return
+        Toast.makeText(
+            requireContext(),
+            getString(R.string.reminder_added, reminder.title),
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun cancelReminder(@Suppress("UNUSED_PARAMETER") event: EpgEvent, rid: Int) {
+        RemindersStore(requireContext()).remove(rid)
+        ReminderReceiver.cancel(requireContext(), rid)
+        Toast.makeText(requireContext(), R.string.reminder_removed, Toast.LENGTH_SHORT).show()
+    }
+
     private fun confirmRecord(event: EpgEvent) {
         val timeStr = buildString {
             append(timeFmt.format(Date(event.beginMs)))
@@ -243,9 +453,44 @@ class EpgFragment : Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.record_confirm_title))
             .setMessage(getString(R.string.record_confirm_message, event.title, timeStr))
-            .setPositiveButton(getString(R.string.record_confirm_ok)) { _, _ -> scheduleRecording(event) }
+            .setPositiveButton(getString(R.string.record_confirm_ok)) { _, _ -> checkConflictsAndSchedule(event) }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    /**
+     * v1.1.0 conflict check: before scheduling, fetch existing timers and the
+     * receiver's tuner count from `api/about`. If overlapping timers in the
+     * proposed window meet or exceed the tuner count, warn the user once.
+     */
+    private fun checkConflictsAndSchedule(event: EpgEvent) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            val repo = Enigma2Repository()
+            val timers = runCatching { repo.getTimers() }.getOrDefault(emptyList())
+            val tuners = runCatching {
+                val raw = repo.getBoxInfo()?.get("tuners")
+                when (raw) {
+                    is Number -> raw.toInt()
+                    is List<*> -> raw.size
+                    is String -> raw.toIntOrNull() ?: 0
+                    else -> 0
+                }
+            }.getOrDefault(0)
+            val overlapping = timers.count { t ->
+                t.disabled == 0 && t.beginMs < event.endMs && t.endMs > event.beginMs
+            }
+            if (!isAdded) return@launch
+            if (tuners > 0 && overlapping >= tuners) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle(R.string.record_conflict_title)
+                    .setMessage(getString(R.string.record_conflict_message, overlapping, tuners))
+                    .setPositiveButton(R.string.record_conflict_continue) { _, _ -> scheduleRecording(event) }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            } else {
+                scheduleRecording(event)
+            }
+        }
     }
 
     private fun scheduleRecording(event: EpgEvent) {
@@ -268,13 +513,14 @@ class EpgFragment : Fragment() {
     }
 
     private fun launchPlayer(service: Service) {
-        val streamUrl = prefs.streamUrl(service.ref)
-        val intent = Intent(requireContext(), PlayerActivity::class.java).apply {
-            putExtra(PlayerActivity.EXTRA_STREAM_URL, streamUrl)
-            putExtra(PlayerActivity.EXTRA_CHANNEL_NAME, service.name)
-            putExtra(PlayerActivity.EXTRA_SERVICE_REF, service.ref)
-        }
-        startActivity(intent)
+        // Use PlaybackRouter so IPTV-type service refs (e.g. HDHomerun channels
+        // added via M3U) have their real stream URL extracted before playback.
+        PlaybackRouter.play(
+            context = requireContext(),
+            streamUrl = prefs.streamUrl(service.ref),
+            channelName = service.name,
+            serviceRef = service.ref
+        )
     }
 
     companion object {
